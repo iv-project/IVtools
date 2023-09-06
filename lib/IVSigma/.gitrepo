@@ -1,0 +1,12 @@
+; DO NOT EDIT (unless you know what you are doing)
+;
+; This subdirectory is a git "subrepo", and this file is maintained by the
+; git-subrepo command. See https://github.com/ingydotnet/git-subrepo#readme
+;
+[subrepo]
+	remote = https://github.com/iv-project/IVSigma.git
+	branch = main
+	commit = 656590a996e9c3ad186c8744a49b2673510bc964
+	parent = b790560df9bd58e3102300656b180131c1bdb22d
+	method = merge
+	cmdver = 0.4.6
