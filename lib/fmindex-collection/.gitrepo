@@ -1,0 +1,12 @@
+; DO NOT EDIT (unless you know what you are doing)
+;
+; This subdirectory is a git "subrepo", and this file is maintained by the
+; git-subrepo command. See https://github.com/ingydotnet/git-subrepo#readme
+;
+[subrepo]
+	remote = https://github.com/SGSSGene/fmindex-collection.git
+	branch = main
+	commit = ff6ee9f68ca161f9ef273f25aca6de4dfc4a5808
+	parent = dbf65120782f618d466acae6d5914ca9291993b2
+	method = merge
+	cmdver = 0.4.6
