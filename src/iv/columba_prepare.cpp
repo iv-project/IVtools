@@ -51,8 +51,8 @@ auto loadFastaAsSingleText(std::filesystem::path input) -> std::vector<uint8_t> 
             }
             text.emplace_back(c);
         }
-        text.emplace_back('$');
     }
+    text.emplace_back('$');
     return text;
 }
 
