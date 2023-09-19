@@ -28,6 +28,7 @@ auto cliOutput = clice::Argument{ .parent = &cli,
                                   .args   = {"-o", "--output"},
                                   .desc   = "path to the output fasta file",
                                   .value  = std::filesystem::path{},
+                                  .tags   = {"required"},
 };
 
 

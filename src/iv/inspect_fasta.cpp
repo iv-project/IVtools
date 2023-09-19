@@ -20,6 +20,7 @@ auto cliInput = clice::Argument{ .parent = &cli,
                                  .args   = {"-i", "--input"},
                                  .desc   = "path to a fasta file",
                                  .value  = std::filesystem::path{},
+                                 .tags   = {"required"},
 };
 
 auto cliSeqId = clice::Argument{ .parent = &cli,
