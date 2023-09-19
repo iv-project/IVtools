@@ -52,7 +52,6 @@ auto cliAlphabetSize     = clice::Argument{ .parent = &cli,
 auto cliAll              = clice::Argument{ .parent = &cli,
                                             .args   = {"-a", "--all"},
                                             .desc   = "print information table about all generators",
-                                            .value  = int64_t{4},
 };
 auto cliYaml             = clice::Argument{ .parent = &cli,
                                             .args   = {"-y", "--yaml"},
