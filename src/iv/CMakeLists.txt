@@ -7,8 +7,10 @@
 cmake_minimum_required (VERSION 3.16)
 
 add_executable(iv
-    main.cpp
     columba_prepare.cpp
+    inspect_fasta.cpp
+    main.cpp
+    read_simulator.cpp
     search_scheme.cpp
 )
 
