@@ -215,24 +215,40 @@ struct ReadGenerator {
 
 
 void app() {
-    auto sequences = loadFasta(*cliInput);
-    fmt::print("loaded fasta file - start simulating\n");
+    if (cliInput) {
+        auto sequences = loadFasta(*cliInput);
+        fmt::print("loaded fasta file - start simulating\n");
 
-    auto readGenerator = ReadGenerator { .sequences  = sequences,
-                                         .readLength = *cliReadLength };
+        auto readGenerator = ReadGenerator { .sequences  = sequences,
+                                             .readLength = *cliReadLength };
 
 
-    auto writer = ivio::fasta::writer {{*cliOutput}};
-    auto digits = std::ceil(std::log(*cliNumberOfReads) / std::log(10));
-    for (size_t i{0}; i < *cliNumberOfReads; ++i) {
-        auto transcript = Transcript{*cliReadLength, *cliErrorSubstitutions, *cliErrorInsertions, *cliErrorDeletions};
-        auto [seqId, pos, read] = readGenerator.generate(transcript.lengthOfRef());
+        auto writer = ivio::fasta::writer {{*cliOutput}};
+        for (size_t i{0}; i < *cliNumberOfReads; ++i) {
+            auto transcript = Transcript{*cliReadLength, *cliErrorSubstitutions, *cliErrorInsertions, *cliErrorDeletions};
+            auto [seqId, pos, read] = readGenerator.generate(transcript.lengthOfRef());
 
-        auto faultyRead = readGenerator.applyTranscript(read, transcript.transcript);
-        writer.write({
-            .id  = fmt::format("simulated-{} (seqid:{}, pos:{}, trans:{})", i, seqId, pos, transcript.transcript),
-            .seq = faultyRead,
-        });
+            auto faultyRead = readGenerator.applyTranscript(read, transcript.transcript);
+            writer.write({
+                .id  = fmt::format("simulated-{} (seqid:{}, pos:{}, trans:{})", i, seqId, pos, transcript.transcript),
+                .seq = faultyRead,
+            });
+        }
+    } else {
+        fmt::print("no fasta file - start pure random simulating\n");
+        auto writer = ivio::fasta::writer {{*cliOutput}};
+        for (size_t i{0}; i < *cliNumberOfReads; ++i) {
+            auto seq = std::string{};
+            seq.reserve(*cliReadLength);
+            for (size_t i{0}; i < *cliReadLength; ++i) {
+                seq.push_back(randomPick());
+            }
+            writer.write({
+                .id  = fmt::format("simulated-{}", i),
+                .seq = seq,
+            });
+        }
+
     }
 }
 }
