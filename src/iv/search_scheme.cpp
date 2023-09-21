@@ -57,6 +57,11 @@ auto cliYaml             = clice::Argument{ .parent = &cli,
                                             .args   = {"-y", "--yaml"},
                                             .desc   = "print in a yaml compatible format",
 };
+auto cliColumba          = clice::Argument{ .parent = &cli,
+                                            .args   = {"--columba"},
+                                            .desc   = "generates columba compatible files",
+};
+
 
 
 void printSingleScheme() {
@@ -79,19 +84,23 @@ void printSingleScheme() {
     auto parts = sss[0].pi.size();
 
     fmt::print("# Search Scheme Information\n");
-    fmt::print("name:                {}\n", e.name);
-    fmt::print("description:         {}\n", e.description);
-    fmt::print("alphabet size:       {}\n", *cliAlphabetSize);
-    fmt::print("min errors:          {}\n", *cliMinAllowedErrors);
-    fmt::print("max errors:          {}\n", *cliMaxAllowedErrors);
-    fmt::print("reference length:    {}\n", *cliReferenceLength);
-    fmt::print("number of parts:     {}\n", parts);
-    fmt::print("number of searches:  {}\n", ss.size());
-    fmt::print("valid:               {}\n", isValid(sss));
-    fmt::print("complete:            {}\n", isComplete(sss, *cliMinAllowedErrors, *cliMaxAllowedErrors));
-    fmt::print("node count:          {}\n", nodeCount</*Edit=*/false>(ss, *cliAlphabetSize));
-    fmt::print("weighted node count: {}\n", weightedNodeCount</*Edit=*/false>(ss, *cliAlphabetSize, *cliReferenceLength));
-    fmt::print("dynamic wnc:         {}\n", weightedNodeCount</*Edit=*/false>(dss, *cliAlphabetSize, *cliReferenceLength));
+    fmt::print("name:                       {}\n", e.name);
+    fmt::print("description:                {}\n", e.description);
+    fmt::print("alphabet size:              {}\n", *cliAlphabetSize);
+    fmt::print("min errors:                 {}\n", *cliMinAllowedErrors);
+    fmt::print("max errors:                 {}\n", *cliMaxAllowedErrors);
+    fmt::print("reference length:           {}\n", *cliReferenceLength);
+    fmt::print("number of parts:            {}\n", parts);
+    fmt::print("number of searches:         {}\n", ss.size());
+    fmt::print("valid:                      {}\n", isValid(sss));
+    fmt::print("complete:                   {}\n", isComplete(sss, *cliMinAllowedErrors, *cliMaxAllowedErrors));
+    fmt::print("node count (ham):           {}\n", nodeCount</*Edit=*/false>(ss, *cliAlphabetSize));
+    fmt::print("weighted node count (ham):  {}\n", weightedNodeCount</*Edit=*/false>(ss, *cliAlphabetSize, *cliReferenceLength));
+    fmt::print("dynamic wnc (ham):          {}\n", weightedNodeCount</*Edit=*/false>(dss, *cliAlphabetSize, *cliReferenceLength));
+    fmt::print("node count (edit):          {}\n", nodeCount</*Edit=*/true>(ss, *cliAlphabetSize));
+    fmt::print("weighted node count (edit): {}\n", weightedNodeCount</*Edit=*/true>(ss, *cliAlphabetSize, *cliReferenceLength));
+    fmt::print("dynamic wnc (edit):         {}\n", weightedNodeCount</*Edit=*/true>(dss, *cliAlphabetSize, *cliReferenceLength));
+
 
     fmt::print("searches:  {:^{}}  {:^{}}  {:^{}}\n", "pi", parts*3, "L", parts*3, "U", parts*3);
     for (auto const& s : sss) {
@@ -159,6 +168,31 @@ void printTable() {
         fmt::print("{:>15} | {:>6} {:>8} {:^6} {:^8} | {:>15.0f} {:>15.0f}  | {:>12.2f} {:>12.2f} | {:>15.0f} {:>15.0f} | {:>12.2f} {:>12.2f}\n", e.name, parts, sss.size(), valid, complete, stat_ss.countHam, stat_ss.countEdit, stat_ss_w.countHam, stat_ss_w.countEdit, stat_dss.countHam, stat_dss.countEdit, stat_dess.countHam, stat_dess.countEdit);
     }
 }
+
+void printColumba() {
+    std::filesystem::create_directories("columba_output");
+    for (auto const& [key, e] : search_schemes::generator::all) {
+        std::filesystem::create_directories("columba_output/" + key);
+
+        // print name
+        {
+            auto ofs = std::ofstream{"columba_output/" + key + "/name.txt"};
+            ofs << key;
+        }
+        for (auto k{*cliMinAllowedErrors}; k <= *cliMaxAllowedErrors; ++k) {
+            std::filesystem::create_directories("columba_output/" + key + "/" + std::to_string(k));
+
+            // generate search schemes
+            auto sss = e.generator(*cliMinAllowedErrors, k, *cliAlphabetSize, *cliReferenceLength);
+
+            auto ofs = std::ofstream{"columba_output/" + key + "/" + std::to_string(k) + "/searches.txt"};
+            for (auto const& s : sss) {
+                fmt::print(ofs, "{{{}}} {{{}}} {{{}}}\n", fmt::join(s.pi, ","), fmt::join(s.l, ","), fmt::join(s.u, ","));
+            }
+        }
+    }
+}
+
 void printYaml() {
     fmt::print("# Search Scheme Information\n");
     fmt::print("alphabet size:       {}\n", *cliAlphabetSize);
@@ -198,9 +232,6 @@ void printYaml() {
     }
 }
 
-
-
-
 void app() {
     if (cliListGenerator) {
         for (auto const& [key, e] : search_schemes::generator::all) {
@@ -209,7 +240,9 @@ void app() {
         return;
     }
 
-    if (cliAll && cliYaml) {
+    if (cliAll && cliColumba) {
+        printColumba();
+    } else if (cliAll && cliYaml) {
         printYaml();
     } else if (cliAll) {
         printTable();
