@@ -58,6 +58,11 @@ auto cliErrorDeletions     = clice::Argument{ .parent = &cli,
                                               .desc   = "number of deletion errors per read",
                                               .value  = size_t{0},
 };
+auto cliErrorRandom        = clice::Argument{ .parent = &cli,
+                                              .args   = {"-e", "--errors"},
+                                              .desc   = "number of errors (randomly choosen S, I or D",
+                                              .value  = size_t{0},
+};
 
 
 char randomPick() {
@@ -226,7 +231,17 @@ void app() {
 
         auto writer = ivio::fasta::writer {{*cliOutput}};
         for (size_t i{0}; i < *cliNumberOfReads; ++i) {
-            auto transcript = Transcript{*cliReadLength, *cliErrorSubstitutions, *cliErrorInsertions, *cliErrorDeletions};
+            auto error_sub = *cliErrorSubstitutions;
+            auto error_ins = *cliErrorInsertions;
+            auto error_del = *cliErrorDeletions;
+            for (size_t i{0}; i < *cliErrorRandom; ++i) {
+                switch(rand()%3) {
+                    case 0: error_sub += 1; break;
+                    case 1: error_ins += 1; break;
+                    case 2: error_del += 1; break;
+                }
+            }
+            auto transcript = Transcript{*cliReadLength, error_sub, error_ins, error_del};
             auto [seqId, pos, read] = readGenerator.generate(transcript.lengthOfRef());
 
             auto faultyRead = readGenerator.applyTranscript(read, transcript.transcript);
