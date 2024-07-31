@@ -1,11 +1,7 @@
-// -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2023, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2023, Knut Reinert & MPI für molekulare Genetik
-// This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
-// shipped with this file.
-// -----------------------------------------------------------------------------------------------------
-#include <search_schemes/isValid.h>
-#include <search_schemes/isComplete.h>
+// SPDX-FileCopyrightText: 2006-2023, Knut Reinert & Freie Universität Berlin
+// SPDX-FileCopyrightText: 2016-2023, Knut Reinert & MPI für molekulare Genetik
+// SPDX-License-Identifier: CC0-1.0
+#include <catch2/catch_all.hpp>
 #include <search_schemes/generator/backtracking.h>
 #include <search_schemes/generator/bestKnown.h>
 #include <search_schemes/generator/h2.h>
@@ -15,7 +11,8 @@
 #include <search_schemes/generator/pigeon.h>
 #include <search_schemes/generator/suffixFilter.h>
 #include <search_schemes/generator/zeroOnesZero.h>
-#include <catch2/catch.hpp>
+#include <search_schemes/isComplete.h>
+#include <search_schemes/isValid.h>
 
 namespace ss = search_schemes;
 namespace gen = ss::generator;

@@ -1,9 +1,6 @@
-// -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2023, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2023, Knut Reinert & MPI für molekulare Genetik
-// This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
-// shipped with this file.
-// -----------------------------------------------------------------------------------------------------
+// SPDX-FileCopyrightText: 2006-2023, Knut Reinert & Freie Universität Berlin
+// SPDX-FileCopyrightText: 2016-2023, Knut Reinert & MPI für molekulare Genetik
+// SPDX-License-Identifier: BSD-3-Clause
 #pragma once
 
 #include "../builtins.h"
@@ -14,6 +11,7 @@
 #include <array>
 #include <bitset>
 #include <cassert>
+#include <cmath>
 #include <cstdint>
 #include <span>
 #include <vector>
@@ -22,8 +20,7 @@
 // Same as EPRV5 but with runtime sigma instead of compile time
 
 
-namespace fmindex_collection {
-namespace occtable {
+namespace fmindex_collection::occtable {
 namespace eprV8_impl {
 
 struct Bitvector {
@@ -130,6 +127,7 @@ struct Bitvector {
     std::vector<uint64_t> C;
 //    std::array<uint64_t, TSigma+1> C;
 
+    Bitvector() = default;
     Bitvector(std::span<uint8_t const> _bwt, size_t _sigma)
         : sigma{_sigma}
     {
@@ -200,9 +198,6 @@ struct Bitvector {
             C[i+1] = sblock_acc[i] + C[i];
         }
     }
-
-    Bitvector(cereal_tag) {}
-
 
     uint64_t memoryUsage() const {
         return    bits.size() * sizeof(bits.back())
@@ -327,30 +322,27 @@ struct Bitvector {
 };
 
 
-template <uint64_t TSigma>
+template <size_t TSigma>
 struct OccTable {
-    using TLengthType = uint64_t;
-    static constexpr uint64_t Sigma = TSigma;
+    static constexpr size_t Sigma = TSigma;
 
     Bitvector bitvector;
 
     static uint64_t expectedMemoryUsage(uint64_t length) {
+        (void)length;
         return 0;
     }
 
+    OccTable() = default;
     OccTable(std::span<uint8_t const> _bwt)
         : bitvector{_bwt, Sigma}
-    {}
-
-    OccTable(cereal_tag)
-        : bitvector{cereal_tag{}}
     {}
 
     uint64_t memoryUsage() const {
         return bitvector.memoryUsage() + sizeof(OccTable);
     }
 
-    uint64_t size() const {
+    size_t size() const {
         return bitvector.C.back();
     }
 
@@ -390,7 +382,7 @@ struct OccTable {
 }
 
 namespace eprV8 {
-template <uint64_t TSigma>
+template <size_t TSigma>
 struct OccTable : eprV8_impl::OccTable<TSigma> {
     using eprV8_impl::OccTable<TSigma>::OccTable;
     static auto name() -> std::string {
@@ -406,5 +398,4 @@ static_assert(checkOccTable<OccTable>);
 
 
 
-}
 }

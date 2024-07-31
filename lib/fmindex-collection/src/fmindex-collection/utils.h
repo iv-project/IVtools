@@ -1,9 +1,6 @@
-// -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2023, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2023, Knut Reinert & MPI für molekulare Genetik
-// This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
-// shipped with this file.
-// -----------------------------------------------------------------------------------------------------
+// SPDX-FileCopyrightText: 2006-2023, Knut Reinert & Freie Universität Berlin
+// SPDX-FileCopyrightText: 2016-2023, Knut Reinert & MPI für molekulare Genetik
+// SPDX-License-Identifier: BSD-3-Clause
 #pragma once
 
 #include "concepts.h"
@@ -53,13 +50,11 @@ inline auto createBWT(std::span<uint8_t const> input, std::span<uint64_t const> 
     return bwt;
 }
 
-auto createSequences(Sequences auto const& _input, int samplingRate, bool reverse=false) -> std::tuple<size_t, std::vector<uint8_t>, std::vector<std::tuple<size_t, size_t>>> {
+auto createSequences(Sequences auto const& _input, bool reverse=false) -> std::tuple<size_t, std::vector<uint8_t>, std::vector<size_t>> {
     // compute total numbers of bytes of the text including delimiters "$"
     size_t totalSize{};
     for (auto const& l : _input) {
-        auto textLen  = l.size();
-        auto delimLen = samplingRate - textLen % samplingRate; // Make sure it is always a multiple of samplingRate
-        totalSize += textLen + delimLen;
+        totalSize += l.size() + 1;
     }
 
     // our concatenated sequences with delimiters
@@ -67,12 +62,10 @@ auto createSequences(Sequences auto const& _input, int samplingRate, bool revers
     inputText.reserve(totalSize);
 
     // list of sizes of the individual sequences
-    auto inputSizes = std::vector<std::tuple<size_t, size_t>>{};
+    auto inputSizes = std::vector<size_t>{};
     inputSizes.reserve(_input.size());
 
     for (auto const& l : _input) {
-        auto ls = l.size();
-
         if (not reverse) {
             inputText.insert(inputText.end(), begin(l), end(l));
         } else {
@@ -86,69 +79,49 @@ auto createSequences(Sequences auto const& _input, int samplingRate, bool revers
             inputText.insert(inputText.end(), begin(l2), end(l2));
         }
 
-        // number of delimiters ('$') which need to be added. It must be at least one, and it
-        // has to make sure the text will be a multiple of samplingRate
-        size_t delimCount = samplingRate - (ls % samplingRate);
-
         // fill with delimiters/zeros
-        inputText.resize(inputText.size() + delimCount);
+        inputText.resize(inputText.size() + 1);
 
-        inputSizes.emplace_back(ls, delimCount);
+        inputSizes.emplace_back(l.size()+1);
     }
     return {totalSize, inputText, inputSizes};
 }
 
-auto createSequencesAndReverse(Sequences auto const& _input, int samplingRate) -> std::tuple<size_t, std::vector<uint8_t>, std::vector<std::tuple<size_t, size_t>>> {
+auto createSequencesAndReverse(Sequences auto const& _input) -> std::tuple<size_t, std::vector<uint8_t>, std::vector<size_t>> {
     // compute total numbers of bytes of the text including delimiters "$"
     size_t totalSize{};
     for (auto const& l : _input) {
-        auto textLen  = l.size();
-        auto delimLen = samplingRate - textLen % samplingRate; // Make sure it is always a multiple of samplingRate
-        totalSize += textLen + delimLen;
+        totalSize += l.size()+1;
     }
-    for (auto const& l : std::views::reverse(_input)) {
-        auto textLen  = l.size();
-        auto delimLen = samplingRate - textLen % samplingRate; // Make sure it is always a multiple of samplingRate
-        totalSize += textLen + delimLen;
-    }
+    totalSize = totalSize*2; // including reverse text
 
     // our concatenated sequences with delimiters
     auto inputText = std::vector<uint8_t>{};
     inputText.reserve(totalSize);
 
     // list of sizes of the individual sequences
-    auto inputSizes = std::vector<std::tuple<size_t, size_t>>{};
+    auto inputSizes = std::vector<size_t>{};
     inputSizes.reserve(_input.size());
 
     // add text
     for (auto const& l : _input) {
-        auto ls = l.size();
         inputText.insert(inputText.end(), begin(l), end(l));
 
-        // number of delimiters ('$') which need to be added. It must be at least one, and it
-        // has to make sure the text will be a multiple of samplingRate
-        size_t delimCount = samplingRate - (ls % samplingRate);
-
         // fill with delimiters/zeros
-        inputText.resize(inputText.size() + delimCount);
+        inputText.resize(inputText.size() + 1);
 
-        inputSizes.emplace_back(ls, delimCount);
+        inputSizes.emplace_back(l.size()+1);
     }
 
     // add reversed text
     for (auto const& l : std::views::reverse(_input)) {
-        auto ls = l.size();
         auto l2 = std::views::reverse(l);
         inputText.insert(inputText.end(), begin(l2), end(l2));
 
-        // number of delimiters ('$') which need to be added. It must be at least one, and it
-        // has to make sure the text will be a multiple of samplingRate
-        size_t delimCount = samplingRate - (ls % samplingRate);
-
         // fill with delimiters/zeros
-        inputText.resize(inputText.size() + delimCount);
+        inputText.resize(inputText.size() + 1);
 
-        inputSizes.emplace_back(ls, delimCount);
+        inputSizes.emplace_back(l.size()+1);
     }
 
     return {totalSize, inputText, inputSizes};
@@ -157,12 +130,13 @@ auto createSequencesAndReverse(Sequences auto const& _input, int samplingRate) -
 
 
 inline auto createSA_32(std::span<uint32_t const> input, size_t threadNbr) -> std::vector<int32_t> {
+    //!TODO call to libsais_int_omp seems not correct
     auto sa = std::vector<int32_t>(input.size());
     if (input.size() == 0) {
         return sa;
     }
 #if LIBSAIS_OPENMP
-    auto r = libsais_int_omp((int32_t*)input.data(), sa.data(), input.size(), 0, nullptr, threadNbr);
+    auto r = libsais_int_omp((int32_t*)input.data(), sa.data(), input.size(), 65536, 0, threadNbr);
 #else
     (void)threadNbr; // Unused if no openmp is available
     auto r = libsais_int((int32_t*)input.data(), sa.data(), input.size(), 65536, 0);
@@ -226,5 +200,45 @@ auto createSequences_32(Sequences auto const& _input, int samplingRate, bool rev
     return {totalSize, inputText, inputSizes};
 }
 
+struct IntIterator {
+    size_t i;
+
+    auto operator*() const -> size_t {
+        return i;
+    }
+
+    auto operator++() -> IntIterator& {
+        ++i;
+        return *this;
+    }
+
+    auto operator<=>(IntIterator const&) const -> std::strong_ordering = default;
+};
+
+template <typename Index>
+auto reconstructText(Index const& index, size_t seqNbr) -> std::vector<uint8_t> {
+    auto r = std::vector<uint8_t>{};
+
+    uint8_t c{};
+    size_t idx = seqNbr;
+    do {
+        c = index.occ.symbol(idx);
+        idx = index.occ.rank(idx, c);
+        r.push_back(c);
+    } while (c != 0);
+    r.pop_back(); // remove last zero
+    std::ranges::reverse(r);
+    return r;
+}
+
+template <typename Index>
+auto reconstructText(Index const& index) -> std::vector<std::vector<uint8_t>> {
+    auto nbrOfSeq = index.occ.rank(index.size(), 0);
+    auto texts = std::vector<std::vector<uint8_t>>{};
+    for (size_t i{}; i < nbrOfSeq; ++i) {
+        texts.push_back(reconstructText(index, i));
+    }
+    return texts;
+}
 
 }

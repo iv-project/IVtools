@@ -1,14 +1,10 @@
-// -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2023, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2023, Knut Reinert & MPI für molekulare Genetik
-// This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
-// shipped with this file.
-// -----------------------------------------------------------------------------------------------------
+// SPDX-FileCopyrightText: 2006-2023, Knut Reinert & Freie Universität Berlin
+// SPDX-FileCopyrightText: 2016-2023, Knut Reinert & MPI für molekulare Genetik
+// SPDX-License-Identifier: BSD-3-Clause
 #pragma once
 
-#include "cereal_tag.h"
-
 #include <cassert>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <vector>
@@ -28,10 +24,7 @@ struct DenseVector {
     size_t bitCount{};          // numbers of used bits
     size_t bits{};              // number of bits per entry
 
-    /**
-     * C'Tor for serialization purposes
-     */
-    DenseVector(cereal_tag) {}
+    DenseVector() = default;
 
     /**
      * \param _bits number of bits used for each integer entry
@@ -57,10 +50,10 @@ struct DenseVector {
         }
     }
 
-    DenseVector(DenseVector&&) noexcept = default;
     DenseVector(DenseVector const&) = default;
-    DenseVector& operator=(DenseVector&&) noexcept = default;
+    DenseVector(DenseVector&&) noexcept = default;
     DenseVector& operator=(DenseVector const&) = default;
+    DenseVector& operator=(DenseVector&&) noexcept = default;
 
     /** Reserve memory for a certain number of integers.
      *
@@ -79,6 +72,7 @@ struct DenseVector {
      * being stored.
      */
     void push_back(uint64_t value) {
+        assert(std::log2(value) < bits);
         auto empty = data.size()*64-bitCount;
         if (empty == 0) {
             data.push_back(value);
@@ -115,9 +109,8 @@ struct DenseVector {
         auto startI = begin/64;
         auto endI   = end/64;
         auto startOffset = begin % 64;
-//        auto endOffset   = end % 64;
 
-        auto mask = (1ull<<(end-begin+1ull))-1ull;
+        auto mask = (uint64_t{1}<<(end-begin+size_t{1}))-1;
         if (startI == endI) {
             return (data[startI] >> startOffset) & mask;
         }

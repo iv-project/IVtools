@@ -1,9 +1,6 @@
-// -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2023, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2023, Knut Reinert & MPI für molekulare Genetik
-// This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
-// shipped with this file.
-// -----------------------------------------------------------------------------------------------------
+// SPDX-FileCopyrightText: 2006-2023, Knut Reinert & Freie Universität Berlin
+// SPDX-FileCopyrightText: 2016-2023, Knut Reinert & MPI für molekulare Genetik
+// SPDX-License-Identifier: BSD-3-Clause
 #pragma once
 
 #include "concepts.h"
@@ -15,9 +12,7 @@
 #include <span>
 #include <vector>
 
-namespace fmindex_collection {
-namespace occtable {
-namespace interleavedPrefix {
+namespace fmindex_collection::occtable::interleavedPrefix {
 
 template <uint64_t TSigma>
 struct Bitvector {
@@ -136,10 +131,9 @@ Bitvector<TSigma> construct_bitvector(std::span<uint8_t const> _bwt) {
     return bv;
 }
 
-template <uint64_t TSigma>
+template <size_t TSigma>
 struct OccTable {
-    using TLengthType = uint64_t;
-    static constexpr uint64_t Sigma = TSigma;
+    static constexpr size_t Sigma = TSigma;
 
     Bitvector<Sigma> bitvector;
 
@@ -153,11 +147,10 @@ struct OccTable {
         return C + blocks + superblocks;
     }
 
+    OccTable() = default;
     OccTable(std::span<uint8_t const> _bwt) {
         bitvector = construct_bitvector<Sigma>(_bwt);
     }
-
-    OccTable(cereal_tag) {}
 
     static auto name() -> std::string {
         return "Interleaved Prefixed";
@@ -170,7 +163,7 @@ struct OccTable {
         return bitvector.memoryUsage() + sizeof(OccTable);
     }
 
-    uint64_t size() const {
+    size_t size() const {
         return bitvector.C.back();
     }
 
@@ -203,6 +196,4 @@ struct OccTable {
 };
 static_assert(checkOccTable<OccTable>);
 
-}
-}
 }

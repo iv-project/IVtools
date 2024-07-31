@@ -1,9 +1,6 @@
-// -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2023, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2023, Knut Reinert & MPI für molekulare Genetik
-// This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
-// shipped with this file.
-// -----------------------------------------------------------------------------------------------------
+// SPDX-FileCopyrightText: 2006-2023, Knut Reinert & Freie Universität Berlin
+// SPDX-FileCopyrightText: 2016-2023, Knut Reinert & MPI für molekulare Genetik
+// SPDX-License-Identifier: BSD-3-Clause
 #pragma once
 
 #include "StopWatch.h"
@@ -130,7 +127,9 @@ auto benchmarkTable(std::string name, T const& bwt) -> Result {
 
     result.expectedMemory = s;
 
-    if (s < 1024ull*1024*1024*8ull) {
+    static_assert(sizeof(size_t) == 8);
+
+    if (s < size_t{1024}*1024*1024*8) {
         StopWatch watch;
         auto table = Table{bwt};
 
@@ -159,9 +158,9 @@ auto benchmarkTable(std::string name, T const& bwt) -> Result {
             result.benchV2 = watch.reset();
         }
         { // benchmark V3
-            uint64_t jumps{1};
-            uint64_t pos = table.rank(0, bwt[0]);
-            uint64_t a{};
+            size_t jumps{1};
+            size_t pos = table.rank(0, bwt[0]);
+            size_t a{};
             while (pos != 0 && jumps/2 < bwt.size()) {
                 jumps += 1;
                 pos = table.rank(pos, bwt[pos]);
@@ -172,9 +171,9 @@ auto benchmarkTable(std::string name, T const& bwt) -> Result {
             result.benchV3 = watch.reset();
         }
         { // benchmark V4
-            uint64_t a{};
-            uint64_t jumps{1};
-            uint64_t pos = table.rank(0, bwt[0]);
+            size_t a{};
+            size_t jumps{1};
+            size_t pos = table.rank(0, bwt[0]);
             while (pos != 0 && jumps/2 < bwt.size()) {
                 jumps += 1;
                 a += table.prefix_rank(pos, bwt[pos]);
@@ -185,7 +184,7 @@ auto benchmarkTable(std::string name, T const& bwt) -> Result {
         }
         { // benchmark V5
             xorshf96_reset();
-            uint64_t a{};
+            size_t a{};
             for (size_t i{0}; i < 10'000'000; ++i) {
                 auto symb = xorshf96() % Table::Sigma;
                 auto row = xorshf96() % table.size();
@@ -198,9 +197,9 @@ auto benchmarkTable(std::string name, T const& bwt) -> Result {
             result.benchV5 = watch.reset();
         }
         { // benchmark V6
-            uint64_t jumps{1};
-            uint64_t pos = table.rank(0, bwt[0]);
-            uint64_t a{};
+            size_t jumps{1};
+            size_t pos = table.rank(0, bwt[0]);
+            size_t a{};
             while (pos != 0 && jumps/2 < bwt.size()) {
                 jumps += 1;
                 auto [rs, prs] = table.all_ranks(pos);

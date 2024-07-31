@@ -1,18 +1,15 @@
-// -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2023, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2023, Knut Reinert & MPI für molekulare Genetik
-// This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
-// shipped with this file.
-// -----------------------------------------------------------------------------------------------------
+// SPDX-FileCopyrightText: 2006-2023, Knut Reinert & Freie Universität Berlin
+// SPDX-FileCopyrightText: 2016-2023, Knut Reinert & MPI für molekulare Genetik
+// SPDX-License-Identifier: BSD-3-Clause
 #pragma once
 
 #include "SelectCursor.h"
 #include "../concepts.h"
 
-namespace fmindex_collection {
-namespace search_backtracking {
+namespace fmindex_collection::search_backtracking {
 
 /* Search algorithm with explicit programmed search scheme
+ * Applies only hamming distance
  */
 template <typename index_t, Sequences queries_t, typename delegate_t>
 struct Search {
@@ -96,11 +93,11 @@ void search(index_t const& index, query_t const& query, size_t maxError, delegat
     static_assert(not cursor_t::Reversed, "reversed fmindex is not supported");
 
     auto queries = std::array<query_t, 1>{query};
-    auto u = Search{index, queries, [&](auto /*queryId*/, auto const& cursor, size_t errors) {
+    auto cb = [&](auto /*queryId*/, auto const& cursor, size_t errors) {
         delegate(cursor, errors);
-    }, maxError};
+    };
+    auto u = Search{index, queries, cb, maxError};
     u.search();
 }
 
-}
 }

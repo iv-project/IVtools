@@ -1,12 +1,7 @@
-// -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2023, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2023, Knut Reinert & MPI für molekulare Genetik
-// This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
-// shipped with this file.
-// -----------------------------------------------------------------------------------------------------
+// SPDX-FileCopyrightText: 2006-2023, Knut Reinert & Freie Universität Berlin
+// SPDX-FileCopyrightText: 2016-2023, Knut Reinert & MPI für molekulare Genetik
+// SPDX-License-Identifier: BSD-3-Clause
 #pragma once
-
-#include "../cereal_tag.h"
 
 #include <array>
 #include <cstddef>
@@ -22,16 +17,15 @@ namespace fmindex_collection {
 /*
  * Minimum requirements to function as an Occurrence Table (OccTable)
  */
-template<typename T, typename SymbolType = uint8_t, typename TLengthType = typename T::TLengthType>
-concept OccTable = requires(T t, std::span<SymbolType const> bwt, TLengthType idx, TLengthType symb) {
+template<typename T, typename SymbolType = uint8_t>
+concept OccTable = requires(T t, std::span<SymbolType const> bwt, uint64_t idx, SymbolType symb) {
     /** Every occtable has to be creatable by providing a bwt
      */
     { T{bwt} } -> std::same_as<T>;
 
-    /** Every occtable has to have a C'Tor that accept cereal_tag{}.
-     * This constructor is used during deserialization
+    /** Every occtable has to have a C'Tor that can be constructed by default
      */
-    { T{cereal_tag{}} } -> std::same_as<T>;
+    { T{} } -> std::same_as<T>;
 
     /** Returns the name of this Occtable
      */
@@ -47,7 +41,7 @@ concept OccTable = requires(T t, std::span<SymbolType const> bwt, TLengthType id
      * \param second - symbol, a value in the range of [1, Sigma)
      * \return number of occurrences
      */
-    { t.rank(idx, symb) } -> std::same_as<TLengthType>;
+    { t.rank(idx, symb) } -> std::same_as<uint64_t>;
 
     /* Return the numbers of symbols at a certain row that are equal or smaller.
      *
@@ -55,7 +49,7 @@ concept OccTable = requires(T t, std::span<SymbolType const> bwt, TLengthType id
      * \param second - symbol, a vale in the range of [1, Sigma)
      * \return number of occurrences
      */
-    { t.prefix_rank(idx, symb) } -> std::same_as<TLengthType>;
+    { t.prefix_rank(idx, symb) } -> std::same_as<uint64_t>;
 
     /* Combined rank and prefix_rank over all symbols
      *
@@ -72,26 +66,24 @@ concept OccTable = requires(T t, std::span<SymbolType const> bwt, TLengthType id
      * assert(prefixes[1] == index.prefix_rank(10, 2);
      * \\ ...
      */
-    { t.all_ranks(idx) } -> std::same_as<std::tuple<std::array<TLengthType, T::Sigma>, std::array<TLengthType, T::Sigma>>>;
+    { t.all_ranks(idx) } -> std::same_as<std::tuple<std::array<uint64_t, T::Sigma>, std::array<uint64_t, T::Sigma>>>;
 
     /* Compile time variable indicating the number of symbols (including the delimiter)
      */
-    { decltype(T::Sigma){} } -> std::same_as<TLengthType>;
+    { decltype(T::Sigma){} } -> std::same_as<size_t>;
 
     /* Run time variable indicating the number of rows inside this occurrence table
      */
-    { t.size() } -> std::same_as<TLengthType>;
+    { t.size() } -> std::same_as<size_t>;
 
     /* Returns the symbol of the bwt at a certain position
      *
      * \param idx - row index
      * \return - will be in range of [0, Sigma)
      */
-    { t.symbol(idx) } -> std::same_as<TLengthType>;
+    //!TODO should not be equal to TLengthType
+//    { t.symbol(idx) } -> (std::same_as<SymbolType> || std::same_as<TLengthType>);
 };
-
-template<typename T, typename TLengthType = typename T::TLengthType>
-concept OccTable_32 = OccTable<T, uint32_t, TLengthType>;
 
 template<template <auto> typename T>
 concept checkOccTable = /*OccTable<T<1>>
@@ -99,14 +91,6 @@ concept checkOccTable = /*OccTable<T<1>>
                      &&*/ OccTable<T<4>>
                      && OccTable<T<5>>
                      && OccTable<T<254>>;
-//                     && OccTable<T<256>>;
-//
-template<template <auto> typename T>
-concept checkOccTable_32 = /*OccTable<T<1>>
-                     && OccTable<T<2>>
-                     &&*/ OccTable_32<T<4>>
-                     && OccTable_32<T<5>>
-                     && OccTable_32<T<254>>;
 //                     && OccTable<T<256>>;
 
 

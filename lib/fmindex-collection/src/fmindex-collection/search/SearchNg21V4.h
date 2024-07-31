@@ -1,12 +1,9 @@
-// -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2023, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2023, Knut Reinert & MPI für molekulare Genetik
-// This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
-// shipped with this file.
-// -----------------------------------------------------------------------------------------------------
+// SPDX-FileCopyrightText: 2006-2023, Knut Reinert & Freie Universität Berlin
+// SPDX-FileCopyrightText: 2016-2023, Knut Reinert & MPI für molekulare Genetik
+// SPDX-License-Identifier: BSD-3-Clause
 #pragma once
 
-#include "../BiFMIndexCursor.h"
+#include "SelectCursor.h"
 
 #include <array>
 #include <cstddef>
@@ -14,8 +11,7 @@
 /**
  * like search_ng21V3 but no template functions
  */
-namespace fmindex_collection {
-namespace search_ng21V4 {
+namespace fmindex_collection::search_ng21V4 {
 
 template <typename index_t, typename search_scheme_t, typename query_t, typename delegate_t>
 struct Search {
@@ -111,7 +107,7 @@ struct Search {
             }
 
             e+=1;
-            for (uint8_t s{1}; s < Sigma; ++s) {
+            for (size_t s{1}; s < Sigma; ++s) {
                 if (s == symb) continue;
                 search_next(cursors[s], s, OnSubstituteL, OnSubstituteR); // as substitution
             }
@@ -122,7 +118,7 @@ struct Search {
             pos -= 1;
 
             if (Deletion) {
-                for (uint8_t s{1}; s < Sigma; ++s) {
+                for (size_t s{1}; s < Sigma; ++s) {
                     if (s == symb) continue;
                     search_next(cursors[s], s, OnDeletionL, OnDeletionR); // deletion occurred in query
                 }
@@ -160,5 +156,4 @@ void search(index_t const & index, queries_t && queries, search_schemes_t const 
 
 }
 
-}
 }

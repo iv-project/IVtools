@@ -1,11 +1,9 @@
-// -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2023, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2023, Knut Reinert & MPI für molekulare Genetik
-// This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
-// shipped with this file.
-// -----------------------------------------------------------------------------------------------------
+// SPDX-FileCopyrightText: 2006-2023, Knut Reinert & Freie Universität Berlin
+// SPDX-FileCopyrightText: 2016-2023, Knut Reinert & MPI für molekulare Genetik
+// SPDX-License-Identifier: BSD-3-Clause
 #pragma once
 
+#include <cstdint>
 #include <optional>
 #include <tuple>
 #include <vector>
@@ -67,21 +65,30 @@ template <typename index_t, typename cursor_t>
 struct LocateFMTree {
     std::vector<std::tuple<size_t, size_t>> positions;
 
-    LocateFMTree(index_t const& index, cursor_t cursor, size_t maxDepth) {
+    LocateFMTree(index_t const& index, cursor_t cursor, size_t samplingRate, size_t maxDepth) {
         positions.reserve(cursor.count());
         auto stack = std::vector<std::tuple<cursor_t, size_t>>{};
         stack.emplace_back(cursor, 0);
-        size_t samplingRate = index.csa.samplingRate;
         while(!stack.empty()) {
             auto [cursor, depth] = stack.back();
             stack.pop_back();
             //!TODO what should the termination criteria be?
             if (depth >= maxDepth or cursor.count() < index_t::Sigma*2) {
                 for (size_t pos{cursor.lb}; pos < cursor.lb + cursor.len; ++pos) {
-                    auto v = index.locate(pos, samplingRate - depth - 1);
-                    if (v) {
-                        auto [seqid, seqpos] = *v;
-                        positions.emplace_back(seqid, seqpos+depth);
+                    uint64_t maxSteps = samplingRate - depth;
+                    uint64_t idx = pos;
+
+                    auto opt = index.single_locate_step(idx);
+                    uint64_t steps{};
+                    for (;!opt && maxSteps > 0; --maxSteps) {
+                        idx = index.occ.rank(idx, index.occ.symbol(idx));
+                        steps += 1;
+                        opt = index.single_locate_step(idx);
+                    }
+                    if (opt) {
+                        auto [seqid, seqpos] = *opt;
+                        positions.emplace_back(seqid, seqpos + depth + steps);
+
                     }
                 }
             } else {
@@ -112,17 +119,17 @@ struct LocateFMTree {
 
 
 template <size_t MaxDepth, typename index_t, typename cursor_t, typename CB>
-void locateFMTree(index_t const& index, cursor_t cursor, CB const& cb, size_t depth=0) {
+void locateFMTree(index_t const& index, cursor_t cursor, CB const& cb, size_t samplingRate, size_t depth=0) {
     if (depth < MaxDepth and cursor.count() > 1000) {
         for (size_t pos{cursor.lb}; pos < cursor.lb + cursor.len; ++pos) {
             auto v = index.single_locate_step(pos);
             if (v) {
                 auto [seqid, seqpos] = *v;
-                cb(seqid, seqpos+depth);
+                cb(seqid, seqpos + depth);
             }
         }
 
-        if (depth+1 < index.csa.samplingRate) {
+        if (depth+1 < samplingRate) {
             auto cursors = cursor.extendLeft();
             for (size_t sym{1}; sym < cursors.size(); ++sym) {
                 locateFMTree<MaxDepth>(index, cursors[sym], cb, depth+1);
@@ -130,10 +137,19 @@ void locateFMTree(index_t const& index, cursor_t cursor, CB const& cb, size_t de
         }
     } else {
         for (size_t pos{cursor.lb}; pos < cursor.lb + cursor.len; ++pos) {
-            auto v = index.locate(pos, index.csa.samplingRate - depth);
-            if (v) {
-                auto [seqid, seqpos] = *v;
-                cb(seqid, seqpos+depth);
+            uint64_t maxSteps = samplingRate - depth;
+            uint64_t idx = pos;
+
+            auto opt = index.single_locate_step(idx);
+            uint64_t steps{};
+            for (;!opt && maxSteps > 0; --maxSteps) {
+                idx = index.occ.rank(idx, index.occ.symbol(idx));
+                steps += 1;
+                opt = index.single_locate_step(idx);
+            }
+            if (opt) {
+                auto [seqid, seqpos] = *opt;
+                cb(seqid, seqpos + depth + steps);
             }
         }
     }

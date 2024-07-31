@@ -6,7 +6,7 @@
 [subrepo]
 	remote = https://github.com/SGSSGene/fmindex-collection.git
 	branch = main
-	commit = ff6ee9f68ca161f9ef273f25aca6de4dfc4a5808
-	parent = dbf65120782f618d466acae6d5914ca9291993b2
+	commit = ab6ea0e86dd906316da76039b217e10afee05901
+	parent = 4189d5d16c078a5de3350a3dc6d8446daca8b07a
 	method = merge
 	cmdver = 0.4.6

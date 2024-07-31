@@ -1,13 +1,13 @@
-// -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2023, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2023, Knut Reinert & MPI für molekulare Genetik
-// This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
-// shipped with this file.
-// -----------------------------------------------------------------------------------------------------
+// SPDX-FileCopyrightText: 2006-2023, Knut Reinert & Freie Universität Berlin
+// SPDX-FileCopyrightText: 2016-2023, Knut Reinert & MPI für molekulare Genetik
+// SPDX-License-Identifier: BSD-3-Clause
 #pragma once
 
-namespace fmindex_collection {
-namespace occtable {
+#include <cmath>
+#include <cstddef>
+#include <cstdint>
+
+namespace fmindex_collection::occtable {
 
 /** Counts how many bits are needed to represent the number y
  * It performs the computation `ceil(log_2(x))` if x > 0
@@ -28,5 +28,4 @@ constexpr inline uint64_t pow(uint64_t b, uint64_t n) {
     return pow(b, (n-1)) * b;
 }
 
-}
 }

@@ -1,9 +1,6 @@
-// -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2023, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2023, Knut Reinert & MPI für molekulare Genetik
-// This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
-// shipped with this file.
-// -----------------------------------------------------------------------------------------------------
+// SPDX-FileCopyrightText: 2006-2023, Knut Reinert & Freie Universität Berlin
+// SPDX-FileCopyrightText: 2016-2023, Knut Reinert & MPI für molekulare Genetik
+// SPDX-License-Identifier: BSD-3-Clause
 #include <fmindex-collection/fmindex-collection.h>
 #include <fmindex-collection/occtable/all.h>
 #include <fmindex-collection/search/all.h>
@@ -11,16 +8,17 @@
 #include <search_schemes/expand.h>
 
 #include <cereal/archives/binary.hpp>
-#include <fmt/format.h>
-#include <unordered_set>
 #include <filesystem>
+#include <fmt/format.h>
+#include <fstream>
+#include <unordered_set>
 
 using namespace fmindex_collection;
 
 constexpr size_t Sigma = 5;
 
 template <size_t Sigma>
-using Table = occtable::interleaved16::OccTable<Sigma>;
+using Table = occtable::Interleaved_16<Sigma>;
 
 template <typename Index>
 void saveIndex(Index const& _index, std::filesystem::path _fileName) {
@@ -33,7 +31,7 @@ template <typename Index>
 auto loadIndex(std::filesystem::path _fileName) {
     auto ifs     = std::ifstream(_fileName, std::ios::binary);
     auto archive = cereal::BinaryInputArchive{ifs};
-    auto index = BiFMIndex<Table<Sigma>>{cereal_tag{}};
+    auto index = Index{};
     archive(index);
     return index;
 }
@@ -51,7 +49,7 @@ int main(int argc, char const* const* argv) {
         search_backtracking::search(index, queries, 0, [&](size_t queryId, auto cursor, size_t errors) {
             (void)errors;
             fmt::print("found something {} {}\n", queryId, cursor.count());
-            for (auto i{begin(cursor)}; i < end(cursor); ++i) {
+            for (auto i : cursor) {
                 auto [chr, pos] = index.locate(i);
                 fmt::print("chr/pos: {}/{}\n", chr, pos);
             }
@@ -65,7 +63,7 @@ int main(int argc, char const* const* argv) {
         search_backtracking::search(index, queries, 0, [&](size_t queryId, auto cursor, size_t errors) {
             (void)errors;
             fmt::print("found something {} {}\n", queryId, cursor.count());
-            for (auto i{begin(cursor)}; i < end(cursor); ++i) {
+            for (auto i : cursor) {
                 auto [chr, pos] = index.locate(i);
                 fmt::print("chr/pos: {}/{}\n", chr, pos);
             }
@@ -79,7 +77,7 @@ int main(int argc, char const* const* argv) {
         search_backtracking::search(index, queries, 0, [&](size_t queryId, auto cursor, size_t errors) {
             (void)errors;
             fmt::print("found something {} {}\n", queryId, cursor.count());
-            for (auto i{begin(cursor)}; i < end(cursor); ++i) {
+            for (auto i : cursor) {
                 auto [chr, pos] = index.locate(i);
                 pos = pos -  queries[queryId].size();
                 fmt::print("chr/pos: {}/{}\n", chr, pos);

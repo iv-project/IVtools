@@ -1,12 +1,9 @@
-// -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2023, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2023, Knut Reinert & MPI für molekulare Genetik
-// This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
-// shipped with this file.
-// -----------------------------------------------------------------------------------------------------
+// SPDX-FileCopyrightText: 2006-2023, Knut Reinert & Freie Universität Berlin
+// SPDX-FileCopyrightText: 2016-2023, Knut Reinert & MPI für molekulare Genetik
+// SPDX-License-Identifier: BSD-3-Clause
 #pragma once
 
-#include "../BiFMIndexCursor.h"
+#include "SelectCursor.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -17,8 +14,7 @@
  * As ng14
  * but direction change is predetermined
  */
-namespace fmindex_collection {
-namespace search_ng15 {
+namespace fmindex_collection::search_ng15 {
 
 struct Block {
     size_t pi;
@@ -92,7 +88,7 @@ struct Search {
                 search_next<'M'>(newCur, e, blockIter+1);
             }
 
-            for (uint8_t i{1}; i < symb; ++i) {
+            for (size_t i{1}; i < symb; ++i) {
                 auto newCur = cursors[i];
 
                 if constexpr (Deletion) {
@@ -101,7 +97,7 @@ struct Search {
                 search_next<'S'>(newCur, e+1, blockIter+1); // as substitution
             }
 
-            for (uint8_t i(symb+1); i < Sigma; ++i) {
+            for (size_t i(symb+1); i < Sigma; ++i) {
                 auto newCur = cursors[i];
 
                 if constexpr (Deletion) {
@@ -201,5 +197,4 @@ void search(index_t const & index, queries_t && queries, search_schemes_t const 
 
 }
 
-}
 }

@@ -1,12 +1,9 @@
-// -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2023, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2023, Knut Reinert & MPI für molekulare Genetik
-// This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
-// shipped with this file.
-// -----------------------------------------------------------------------------------------------------
+// SPDX-FileCopyrightText: 2006-2023, Knut Reinert & Freie Universität Berlin
+// SPDX-FileCopyrightText: 2016-2023, Knut Reinert & MPI für molekulare Genetik
+// SPDX-License-Identifier: BSD-3-Clause
 #pragma once
 
-#include "../BiFMIndexCursor.h"
+#include "SelectCursor.h"
 
 #include <array>
 #include <cstddef>
@@ -15,8 +12,7 @@
  * like search_ng21
  * but using a abort flag instead of return values
  */
-namespace fmindex_collection {
-namespace search_ng21V6 {
+namespace fmindex_collection::search_ng21V6 {
 
 enum class Dir : uint8_t { Left, Right };
 template <typename T>
@@ -124,7 +120,7 @@ struct Search {
                 if (abort) return;
             }
 
-            for (uint8_t i{1}; i < symb; ++i) {
+            for (size_t i{1}; i < symb; ++i) {
                 auto newCur = cursors[i];
 
                 if constexpr (Deletion) {
@@ -135,7 +131,7 @@ struct Search {
                 if (abort) return;
             }
 
-            for (uint8_t i(symb+1); i < Sigma; ++i) {
+            for (size_t i(symb+1); i < Sigma; ++i) {
                 auto newCur = cursors[i];
 
                 if constexpr (Deletion) {
@@ -296,5 +292,4 @@ void search_best_n(index_t const & index, queries_t && queries, std::vector<sear
     }
 }
 
-}
 }

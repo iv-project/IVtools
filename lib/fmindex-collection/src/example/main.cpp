@@ -1,9 +1,6 @@
-// -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2023, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2023, Knut Reinert & MPI für molekulare Genetik
-// This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
-// shipped with this file.
-// -----------------------------------------------------------------------------------------------------
+// SPDX-FileCopyrightText: 2006-2023, Knut Reinert & Freie Universität Berlin
+// SPDX-FileCopyrightText: 2016-2023, Knut Reinert & MPI für molekulare Genetik
+// SPDX-License-Identifier: BSD-3-Clause
 #include "utils.h"
 #include "argp.h"
 
@@ -71,7 +68,7 @@ int main(int argc, char const* const* argv) {
         , ext, gens);
         return 0;
     }
-    auto const [queries, queryInfos] = loadQueries<Sigma>(config.queryPath, config.reverse);
+    auto const [queries, queryInfos] = loadQueries<Sigma>(config.queryPath, config.reverse, config.convertUnknownChar);
 
     if (!queries.empty()) {
         fmt::print("loaded {} queries (incl reverse complements)\n", queries.size());
@@ -92,7 +89,8 @@ int main(int argc, char const* const* argv) {
         }
         fmt::print("start loading {} ...", name);
         fflush(stdout);
-        auto index = loadDenseIndex<CSA, Table>(config.indexPath, /*samplingRate*/16, /*threadNbr*/1);
+        size_t samplingRate = 16;
+        auto index = loadDenseIndex<CSA, Table>(config.indexPath, samplingRate, config.threads, config.partialBuildUp, config.convertUnknownChar);
         fmt::print("done\n");
         for (auto const& algorithm : config.algorithms) {
             fmt::print("using algorithm {}\n", algorithm);
@@ -234,7 +232,7 @@ int main(int argc, char const* const* argv) {
                 if (algorithm.size() == 15 && algorithm.substr(0, 13)  == "pseudo_fmtree") {
                     size_t maxDepth = std::stod(algorithm.substr(13, 2));
                     for (auto const& [queryId, cursor, e] : resultCursors) {
-                        for (auto [seqId, pos] : LocateFMTree{index, cursor, maxDepth}) {
+                        for (auto [seqId, pos] : LocateFMTree{index, cursor, samplingRate, maxDepth}) {
                             results.emplace_back(queryId, seqId, pos, e);
                         }
                         resultCt += cursor.len;
@@ -243,7 +241,7 @@ int main(int argc, char const* const* argv) {
                     for (auto const& [queryId, cursor, e] : resultCursors) {
                         locateFMTree<16>(index, cursor, [&, &queryId=queryId, &e=e](size_t seqId, size_t pos) {
                             results.emplace_back(queryId, seqId, pos, e);
-                        });
+                        }, samplingRate);
                         resultCt += cursor.len;
                     }
 

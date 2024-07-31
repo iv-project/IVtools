@@ -1,9 +1,6 @@
-// -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2023, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2023, Knut Reinert & MPI für molekulare Genetik
-// This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
-// shipped with this file.
-// -----------------------------------------------------------------------------------------------------
+// SPDX-FileCopyrightText: 2006-2023, Knut Reinert & Freie Universität Berlin
+// SPDX-FileCopyrightText: 2016-2023, Knut Reinert & MPI für molekulare Genetik
+// SPDX-License-Identifier: BSD-3-Clause
 #pragma once
 
 #include "../Scheme.h"
@@ -109,10 +106,8 @@ inline auto generateLowerBound(size_t N, size_t K) {
     return bound;
 }
 
-inline auto generateUpperBound(std::vector<std::vector<size_t>> const& pieces, std::vector<std::vector<size_t>> const& lower) {
+inline auto generateUpperBound(std::vector<std::vector<size_t>> const& pieces, std::vector<std::vector<size_t>> const& lower, size_t N, size_t K) {
     assert(pieces.size() >= 1);
-    size_t const K = pieces.size() - 1;
-    size_t const N = pieces[0].size();
     assert(N >= K);
 
     auto diffs = generateOptimizedDiffMatrix(N, K);
@@ -137,7 +132,7 @@ inline auto h2(size_t N, size_t minK, size_t K) -> Scheme {
 
     auto pieces = generatePieces(N, K, 0);
     auto lower  = generateLowerBound(N, K);
-    auto upper  = generateUpperBound(pieces, lower);
+    auto upper  = generateUpperBound(pieces, lower, N, K);
     auto ss = Scheme{};
     for (size_t i{0}; i < pieces.size(); ++i) {
         ss.emplace_back(Search{pieces[i], lower[i], upper[i]});

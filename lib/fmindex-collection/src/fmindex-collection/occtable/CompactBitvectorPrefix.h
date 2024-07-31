@@ -1,9 +1,6 @@
-// -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2023, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2023, Knut Reinert & MPI für molekulare Genetik
-// This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
-// shipped with this file.
-// -----------------------------------------------------------------------------------------------------
+// SPDX-FileCopyrightText: 2006-2023, Knut Reinert & Freie Universität Berlin
+// SPDX-FileCopyrightText: 2016-2023, Knut Reinert & MPI für molekulare Genetik
+// SPDX-License-Identifier: BSD-3-Clause
 #pragma once
 
 #include "concepts.h"
@@ -17,9 +14,7 @@
 #include <tuple>
 #include <vector>
 
-namespace fmindex_collection {
-namespace occtable {
-namespace compactBitvectorPrefix {
+namespace fmindex_collection::occtable::compactBitvectorPrefix {
 
 struct alignas(64) Superblock {
     uint64_t superBlockEntry{};
@@ -85,7 +80,7 @@ struct Bitvector {
 };
 
 
-template <uint64_t TSigma>
+template <size_t TSigma>
 auto construct_bitvectors(std::span<uint8_t const> bwt) -> std::tuple<std::array<Bitvector, TSigma>, std::array<Bitvector, TSigma>, std::array<uint64_t, TSigma+1>> {
     std::array<Bitvector, TSigma> bv1;
     std::array<Bitvector, TSigma> bv2;
@@ -157,10 +152,9 @@ auto construct_bitvectors(std::span<uint8_t const> bwt) -> std::tuple<std::array
     return {std::move(bv1), std::move(bv2), C};
 }
 
-template <uint64_t TSigma>
+template <size_t TSigma>
 struct OccTable {
-    using TLengthType = uint64_t;
-    static constexpr uint64_t Sigma = TSigma;
+    static constexpr size_t Sigma = TSigma;
 
     std::array<Bitvector, Sigma> bitvector1;
     std::array<Bitvector, Sigma> bitvector2;
@@ -175,11 +169,10 @@ struct OccTable {
     }
 
 
+    OccTable() = default;
     OccTable(std::span<uint8_t const> _bwt) {
         std::tie(bitvector1, bitvector2, C) = construct_bitvectors<Sigma>(_bwt);
     }
-
-    OccTable(cereal_tag) {}
 
     static auto name() -> std::string {
         return "CompactBitvectorPrefix";
@@ -201,7 +194,7 @@ struct OccTable {
         return memory;
     }
 
-    uint64_t size() const {
+    size_t size() const {
         return C.back();
     }
 
@@ -213,7 +206,7 @@ struct OccTable {
         return bitvector2[symb].rank(idx);
     }
 
-    uint64_t symbol(uint64_t idx) const {
+    uint8_t symbol(uint64_t idx) const {
         for (uint64_t i{0}; i < Sigma-1; ++i) {
             if (bitvector1[i].value(idx)) {
                 return i;
@@ -239,6 +232,4 @@ struct OccTable {
 };
 static_assert(checkOccTable<OccTable>);
 
-}
-}
 }

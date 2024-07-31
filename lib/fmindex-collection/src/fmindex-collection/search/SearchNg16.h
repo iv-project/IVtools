@@ -1,12 +1,9 @@
-// -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2023, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2023, Knut Reinert & MPI für molekulare Genetik
-// This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
-// shipped with this file.
-// -----------------------------------------------------------------------------------------------------
+// SPDX-FileCopyrightText: 2006-2023, Knut Reinert & Freie Universität Berlin
+// SPDX-FileCopyrightText: 2016-2023, Knut Reinert & MPI für molekulare Genetik
+// SPDX-License-Identifier: BSD-3-Clause
 #pragma once
 
-#include "../BiFMIndexCursor.h"
+#include "SelectCursor.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -17,8 +14,7 @@
 /**
  * As ng15 and 20 combined
  */
-namespace fmindex_collection {
-namespace search_ng16 {
+namespace fmindex_collection::search_ng16 {
 
 struct BandMatrix {
 private:
@@ -266,5 +262,4 @@ void search(index_t const & index, queries_t && queries, search_schemes_t const 
 
 }
 
-}
 }

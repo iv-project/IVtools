@@ -1,9 +1,6 @@
-// -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2023, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2023, Knut Reinert & MPI für molekulare Genetik
-// This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
-// shipped with this file.
-// -----------------------------------------------------------------------------------------------------
+// SPDX-FileCopyrightText: 2006-2023, Knut Reinert & Freie Universität Berlin
+// SPDX-FileCopyrightText: 2016-2023, Knut Reinert & MPI für molekulare Genetik
+// SPDX-License-Identifier: BSD-3-Clause
 #pragma once
 
 #include <cassert>
@@ -15,8 +12,8 @@
 namespace fmindex_collection {
 
 struct BitStack {
-    uint64_t size{0};
-    uint64_t ones{0};
+    size_t size{0};
+    size_t ones{0};
     std::vector<uint8_t> data;
     void push(bool bit) {
         if (size % 8 == 0) {
@@ -32,7 +29,7 @@ struct BitStack {
     bool value(size_t idx) const {
         auto block  = idx / 8;
         auto bitNbr = idx % 8;
-        return (data[block] & (1ull << bitNbr));
+        return (data[block] & (size_t{1} << bitNbr));
     }
 
     void append(std::vector<uint8_t>& buffer) const {
