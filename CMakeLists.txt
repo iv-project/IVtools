@@ -18,6 +18,7 @@ set (CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 set (CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 set (CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 
+find_package(OpenMP QUIET)
 include(cmake/CPM.cmake)
 
 find_package(fmt REQUIRED)
@@ -26,6 +27,8 @@ set(BUILD_DOC OFF)
 set(BUILD_SANDBOX OFF)
 set(SKIP_PERFORMANCE_COMPARISON ON)
 CPMAddPackage("gh:USCiLab/cereal@1.3.2")
+set(LIBSAIS_USE_OPENMP ON)
+CPMAddPackage("gh:SGSSGene/libsais#8a5a468b2f31afe1db81888302ce4532c1436ece@2.8.4-1")
 
 find_package(fmindex_collection REQUIRED PATHS lib/fmindex-collection)
 find_package(clice REQUIRED PATHS lib/clice)

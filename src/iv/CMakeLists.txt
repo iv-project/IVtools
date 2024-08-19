@@ -12,6 +12,7 @@ add_executable(iv
     main.cpp
     read_simulator.cpp
     search_scheme.cpp
+    bwt.cpp
 )
 
 target_link_libraries(iv
