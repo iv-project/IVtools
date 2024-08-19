@@ -13,6 +13,7 @@ add_executable(iv
     read_simulator.cpp
     search_scheme.cpp
     bwt.cpp
+    fasta.cpp
 )
 
 target_link_libraries(iv
