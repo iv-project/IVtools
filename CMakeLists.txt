@@ -21,8 +21,6 @@ set (CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 find_package(OpenMP QUIET)
 include(cmake/CPM.cmake)
 
-find_package(fmt REQUIRED)
-
 set(BUILD_DOC OFF)
 set(BUILD_SANDBOX OFF)
 set(SKIP_PERFORMANCE_COMPARISON ON)
