@@ -1,17 +1,9 @@
+# SPDX-FileCopyrightText: 2023 Gottlieb+Freitag <info@gottliebtfreitag.de>
+# SPDX-License-Identifier: CC0-1.0
 cmake_minimum_required (VERSION 3.12)
-if (TARGET ivio::ivio)
+if (TARGET clice::clice)
     return()
 endif()
 
-add_library(clice INTERFACE)
-add_library(clice::clice ALIAS clice)
-target_sources(clice INTERFACE FILE_SET set0 TYPE HEADERS BASE_DIRS src)
-target_include_directories(clice
-    INTERFACE
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/src>
-    $<INSTALL_INTERFACE:include>
-)
-include(GNUInstallDirs)
-install (TARGETS clice)
-install (DIRECTORY src/clice TYPE INCLUDE FILES_MATCHING PATTERN "*.h")
-install (FILES clice-config.cmake DESTINATION ${CMAKE_INSTALL_DATADIR}/cmake/)
+CPMaddPackage("gh:fmtlib/fmt#10.2.1")
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/clice ${CMAKE_CURRENT_BINARY_DIR}/clice)

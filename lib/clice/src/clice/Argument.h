@@ -1,17 +1,20 @@
+// SPDX-FileCopyrightText: 2023 Gottlieb+Freitag <info@gottliebtfreitag.de>
+// SPDX-License-Identifier: ISC
 #pragma once
 
 #include "parseString.h"
 
 #include <algorithm>
 #include <any>
+#include <cstddef>
 #include <filesystem>
 #include <functional>
 #include <limits>
 #include <optional>
 #include <sstream>
 #include <string>
-#include <typeinfo>
 #include <typeindex>
+#include <typeinfo>
 #include <unordered_set>
 #include <vector>
 
@@ -26,6 +29,7 @@ struct ArgumentBase {
     std::optional<std::vector<std::string>> mapping;
     std::unordered_set<std::string>         tags;
     std::optional<std::string>              completion;
+    std::function<std::vector<std::string>()> completion_fn;
     std::vector<ArgumentBase*>              arguments; // child parameters
     bool                                    symlink;   // a symlink for example to "slix-env" should actually call "slix env"
     std::type_index                         type_index;
@@ -88,15 +92,16 @@ struct ListOfStrings : std::vector<std::string> {
     }
 };
 
-template <typename T = nullptr_t, typename T2 = nullptr_t>
+template <typename T = std::nullptr_t, typename T2L = std::nullptr_t, typename T2R = std::nullptr_t>
 struct Argument {
-    Argument<T2>*         parent{};
+    Argument<T2L, T2R>*   parent{};
     ListOfStrings         args;
     bool                  symlink;
     std::string           desc;
     bool                  isSet{};
     T                     value{};
     mutable std::any      anyType; // used if T is a callback
+    std::function<std::vector<std::string>()> completion;
     std::function<void()> cb;
     size_t                                            cb_priority{100}; // lower priorities will be triggered before larger ones
     std::optional<std::unordered_map<std::string, T>> mapping;
@@ -106,14 +111,14 @@ struct Argument {
         return isSet;
     }
 
-    auto operator*() const -> decltype(auto) {
+    auto operator*() const -> auto const& {
         if constexpr (std::is_invocable_v<T>) {
             using R = std::decay_t<decltype(value())>;
             if (!anyType.has_value()) {
                 anyType = value();
             }
             return *std::any_cast<R>(&anyType);
-        } else if constexpr (std::same_as<T, nullptr_t>) {
+        } else if constexpr (std::same_as<T, std::nullptr_t>) {
             []<bool type_available = false> {
                 static_assert(type_available, "Can't dereference a flag");
             }();
@@ -128,7 +133,7 @@ struct Argument {
     }
 
     template <typename CB>
-    auto run(CB _cb) -> nullptr_t {
+    auto run(CB _cb) -> std::nullptr_t {
         cb = _cb;
         return nullptr;
     }
@@ -151,14 +156,18 @@ struct Argument {
             arg.args    = desc.args;
             arg.symlink = desc.symlink;
             arg.desc    = desc.desc;
-            if constexpr (std::same_as<std::filesystem::path, T>) {
-                arg.completion = " -f ";
-            } else if (desc.mapping) {
-                std::string str;
-                for (auto [key, value] : *desc.mapping) {
-                    str += key + "\n";
+            if (desc.completion) {
+                arg.completion_fn = desc.completion;
+            } else {
+                if constexpr (std::same_as<std::filesystem::path, T>) {
+                    arg.completion = " -f ";
+                } else if (desc.mapping) {
+                    std::string str;
+                    for (auto [key, value] : *desc.mapping) {
+                        str += key + "\n";
+                    }
+                    arg.completion = str;
                 }
-                arg.completion = str;
             }
             if (desc.mapping) {
                 auto v = std::vector<std::string>{};
@@ -176,7 +185,7 @@ struct Argument {
                 desc.isSet = true;
                 arg.cb = desc.cb;
                 arg.cb_priority = desc.cb_priority;
-                if constexpr (std::same_as<nullptr_t, T>) {
+                if constexpr (std::same_as<std::nullptr_t, T>) {
                 } else if constexpr (std::is_arithmetic_v<T>
                                      || std::same_as<std::string, T>
                                      || std::same_as<std::filesystem::path, T>
@@ -216,7 +225,7 @@ struct Argument {
                     return "unknown";
                 };
 
-                if constexpr (std::same_as<nullptr_t, T>) {
+                if constexpr (std::same_as<std::nullptr_t, T>) {
                     return std::nullopt;
                 } else if constexpr (std::same_as<bool, T>) {
                     if (desc.mapping) return reverseMapping(desc.value);

@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2023 Gottlieb+Freitag <info@gottliebtfreitag.de>
+# SPDX-License-Identifier: CC0-1.0
 cmake_minimum_required (VERSION 3.14)
 
 # check if this is the main project
@@ -17,16 +19,12 @@ endif ()
 project(clice LANGUAGES CXX
             DESCRIPTION "clice -- command line interface argument parsing")
 
+include(cmake/CPM.cmake)
 include(clice-config.cmake)
 
 if (${ROOT_PROJECT})
-    find_package (fmt REQUIRED)
-
     enable_testing()
 
-    add_executable(clice-demo src/clice-demo/main.cpp)
-    target_link_libraries(clice-demo
-                            clice::clice
-                            fmt::fmt)
-    add_test(clice-demo clice-demo)
+    add_subdirectory(src/test_header)
+    add_subdirectory(src/clice-demo)
 endif()
