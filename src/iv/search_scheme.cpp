@@ -4,10 +4,11 @@
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file.
 // -----------------------------------------------------------------------------------------------------
+#include "error_fmt.h"
+#include "tikz.h"
+
 #include <clice/clice.h>
 #include <search_schemes/search_schemes.h>
-
-#include "error_fmt.h"
 
 namespace {
 void app();
@@ -61,6 +62,11 @@ auto cliColumba          = clice::Argument{ .parent = &cli,
                                             .args   = {"--columba"},
                                             .desc   = "generates columba compatible files",
 };
+auto cliTikz             = clice::Argument{ .parent = &cli,
+                                            .args   = {"--tikz"},
+                                            .desc   = "generate a tikz diagram",
+                                            .value  = std::string{}
+};
 
 
 
@@ -106,7 +112,36 @@ void printSingleScheme() {
     for (auto const& s : sss) {
         fmt::print("           {{{}}}, {{{}}}, {{{}}}\n", fmt::join(s.pi, ", "), fmt::join(s.l, ", "), fmt::join(s.u, ", "));
     }
+
+    for (auto const& s : ss) {
+        fmt::print("           {{{}}}, {{{}}}, {{{}}}\n", fmt::join(s.pi, ", "), fmt::join(s.l, ", "), fmt::join(s.u, ", "));
+    }
+
+    auto hss = limitToHamming(ss);
+    for (auto const& s : hss) {
+        fmt::print("           {{{}}}, {{{}}}, {{{}}}\n", fmt::join(s.pi, ", "), fmt::join(s.l, ", "), fmt::join(s.u, ", "));
+    }
+
 }
+
+void printTikz(std::string const& path_prefix) {
+    // pick the correct generator
+    auto iter = search_schemes::generator::all.find(*cliGenerator);
+    if (iter == search_schemes::generator::all.end()) {
+        throw error_fmt{"can not find generator \"{}\"", *cliGenerator};
+    }
+    auto const& e = iter->second;
+
+    // generate search schemes
+    auto sss = e.generator(*cliMinAllowedErrors, *cliMaxAllowedErrors, *cliAlphabetSize, *cliReferenceLength);
+
+    for (size_t i{0}; i < sss.size(); ++i) {
+        auto filename = fmt::format("{}-{:02}.tikz", path_prefix, i);
+        auto ofs = std::ofstream(filename);
+        fmt::print(ofs, "{}\n", generateTIKZ(sss[i], *cliQueryLength, false, 4, true));
+    }
+}
+
 
 void printTable() {
     fmt::print("# Search Scheme Information\n");
@@ -246,6 +281,8 @@ void app() {
         printYaml();
     } else if (cliAll) {
         printTable();
+    } else if (cliTikz) {
+        printTikz(*cliTikz);
     } else {
         printSingleScheme();
     }
