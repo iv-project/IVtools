@@ -1,15 +1,11 @@
-// -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2023, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2023, Knut Reinert & MPI für molekulare Genetik
-// This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
-// shipped with this file.
-// -----------------------------------------------------------------------------------------------------
+// SPDX-FileCopyrightText: 2006-2023, Knut Reinert & Freie Universität Berlin
+// SPDX-FileCopyrightText: 2016-2023, Knut Reinert & MPI für molekulare Genetik
+// SPDX-License-Identifier: BSD-3-Clause
 #include "../detail/buffered_reader.h"
 #include "../detail/file_reader.h"
 #include "../detail/mmap_reader.h"
 #include "../detail/stream_reader.h"
 #include "../detail/zlib_file_reader.h"
-#include "../detail/zlib_mmap2_reader.h"
 #include "reader_mt.h"
 
 #include <condition_variable>
@@ -42,22 +38,26 @@ struct reader_mt_pimpl {
     std::optional<record_view> next;
     reader_mt_phase phase;
 
-    reader_mt_pimpl(std::filesystem::path file, bool)
+    reader_mt_pimpl(std::filesystem::path file)
         : reader {[&]() -> VarBufferedReader {
-            if (file.extension() == ".gz") {
-                return zlib_reader{mmap_reader{file.c_str()}};
+            auto reader = mmap_reader{file}; // create a reader and peak into the file
+            auto [buffer, len] = reader.read(2);
+            if (zlib_reader::isGZipHeader({buffer, len})) {
+                return zlib_reader{std::move(reader)};
             }
-            return mmap_reader{file.c_str()};
-            throw std::runtime_error("unknown file extension");
+            return reader;
         }()}
     {}
-    reader_mt_pimpl(std::istream& file, bool compressed)
+    reader_mt_pimpl(std::istream& file)
         : reader {[&]() -> VarBufferedReader {
-            if (!compressed) {
-                return stream_reader{file};
-            } else {
-                return zlib_reader{stream_reader{file}};
+            auto reader = stream_reader{file};
+            auto buffer = std::array<char, 2>{};
+            auto len = reader.read(buffer);
+            reader.seek(0);
+            if (zlib_reader::isGZipHeader({buffer.data(), len})) {
+                return zlib_reader{std::move(reader)};
             }
+            return reader;
         }()}
     {}
 
@@ -65,7 +65,7 @@ struct reader_mt_pimpl {
 
 reader_mt::reader_mt(reader_mt_config config)
     : pimpl{std::visit([&](auto& p) {
-        return std::make_unique<reader_mt_pimpl>(p, config.compressed);
+        return std::make_unique<reader_mt_pimpl>(p);
     }, config.input)}
 {
     pimpl->thread = std::jthread{[this](std::stop_token stoken) {

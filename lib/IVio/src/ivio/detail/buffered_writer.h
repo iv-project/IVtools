@@ -1,9 +1,6 @@
-// -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2023, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2023, Knut Reinert & MPI für molekulare Genetik
-// This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
-// shipped with this file.
-// -----------------------------------------------------------------------------------------------------
+// SPDX-FileCopyrightText: 2006-2023, Knut Reinert & Freie Universität Berlin
+// SPDX-FileCopyrightText: 2016-2023, Knut Reinert & MPI für molekulare Genetik
+// SPDX-License-Identifier: BSD-3-Clause
 #pragma once
 
 #include "concepts.h"
@@ -36,7 +33,12 @@ public:
     auto write(std::span<char const> _buffer) -> size_t {
         auto oldSize = buffer.size();
         buffer.resize(oldSize + _buffer.size());
+//!WORKAROUND llvm < 16 does not provide std::ranges::copy
+#if defined(_LIBCPP_VERSION) && _LIBCPP_VERSION < 160000
+        std::copy(_buffer.begin(), _buffer.end(), buffer.begin()+oldSize);
+#else
         std::ranges::copy(_buffer, buffer.begin()+oldSize);
+#endif
         if (buffer.size() > minV) {
             auto writtenBytes = writer.write(buffer);
             if (writtenBytes > 0) {

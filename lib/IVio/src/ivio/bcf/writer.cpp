@@ -1,12 +1,10 @@
-// -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2023, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2023, Knut Reinert & MPI für molekulare Genetik
-// This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
-// shipped with this file.
-// -----------------------------------------------------------------------------------------------------
+// SPDX-FileCopyrightText: 2006-2023, Knut Reinert & Freie Universität Berlin
+// SPDX-FileCopyrightText: 2016-2023, Knut Reinert & MPI für molekulare Genetik
+// SPDX-License-Identifier: BSD-3-Clause
 #include "../detail/bgzf_writer.h"
 #include "writer.h"
 
+#include <array>
 #include <cassert>
 #include <cstddef>
 #include <variant>
@@ -37,9 +35,9 @@ struct bcf_buffer {
     void writeInt(T v) {
         auto type = [&]() -> uint8_t {
             if constexpr (std::same_as<T, int8_t>) return 1;
-            if constexpr (std::same_as<T, int16_t>) return 2;
-            if constexpr (std::same_as<T, int32_t>) return 3;
-            throw std::runtime_error{"BCF error, expected an int(2)"};
+            else if constexpr (std::same_as<T, int16_t>) return 2;
+            else if constexpr (std::same_as<T, int32_t>) return 3;
+            else throw std::runtime_error{"BCF error, expected an int(2)"};
         }();
         pack<uint8_t>(type);
         pack(v);
@@ -48,13 +46,13 @@ struct bcf_buffer {
     void writeString(std::string_view v) {
         if (v.size() < 15) { // No overflow
             auto l = (v.size() << 4) | 0x07;
-            pack<uint8_t>(l);
+            pack<uint8_t>(static_cast<uint8_t>(l));
         } else { // overflow
             pack<uint8_t>(0xf7);
             if (v.size() > 127) {
                 throw std::runtime_error{"BCF: string to long"};
             }
-            writeInt<int8_t>(v.size());
+            writeInt<int8_t>(static_cast<int8_t>(v.size()));
         }
         auto oldSize = buffer.size();
         buffer.resize(buffer.size() + v.size());
@@ -65,19 +63,19 @@ struct bcf_buffer {
     void writeVector(std::vector<int32_t> v) {
         if (v.size() < 15) { // No overflow
             auto l = (v.size() << 4) | 0x07;
-            pack<uint8_t>(l);
+            pack<uint8_t>(static_cast<uint8_t>(l));
         } else { // overflow
             pack<uint8_t>(0xf7);
             if (v.size() > 127) {
                 throw std::runtime_error{"BCF: string to long"};
             }
-            writeInt<int8_t>(v.size());
+            writeInt<int8_t>(static_cast<int8_t>(v.size()));
         }
         for (auto e : v) {
-            if ( e >= std::numeric_limits<int8_t>::lowest() and e <= std::numeric_limits<int8_t>::max()) {
-                writeInt<int8_t>(e);
-            } else if ( e >= -std::numeric_limits<int16_t>::lowest() and e <= std::numeric_limits<int16_t>::max()) {
-                writeInt<int16_t>(e);
+            if (e >= std::numeric_limits<int8_t>::lowest() and e <= std::numeric_limits<int8_t>::max()) {
+                writeInt<int8_t>(static_cast<int8_t>(e));
+            } else if (e >= -std::numeric_limits<int16_t>::lowest() and e <= std::numeric_limits<int16_t>::max()) {
+                writeInt<int16_t>(static_cast<int16_t>(e));
             } else {
                 writeInt<int32_t>(e);
             }
@@ -86,7 +84,12 @@ struct bcf_buffer {
     void writeData(std::span<uint8_t const> data) {
         auto oldSize = buffer.size();
         buffer.resize(oldSize + data.size());
+//!WORKAROUND llvm < 16 does not provide std::ranges::copy
+#if defined(_LIBCPP_VERSION) && _LIBCPP_VERSION < 160000
+        std::copy(data.begin(), data.end(), begin(buffer) + oldSize);
+#else
         std::ranges::copy(data, begin(buffer) + oldSize);
+#endif
     }
 
 };
@@ -95,7 +98,7 @@ struct bcf_buffer {
 template <>
 struct ivio::writer_base<ivio::bcf::writer>::pimpl {
     //!TODO support other writers
-    using Writers = std::variant<bgzf_file_writer>;
+    using Writers = std::variant<ivio::bgzf_file_writer>;
 
 
     Writers writer;
@@ -104,11 +107,11 @@ struct ivio::writer_base<ivio::bcf::writer>::pimpl {
 
     pimpl(std::filesystem::path output)
         : writer {[&]() -> Writers {
-            return bgzf_file_writer{output};
+            return ivio::bgzf_file_writer{output};
         }()}
     {}
 
-    pimpl(std::ostream& output)
+    pimpl(std::ostream& /*output*/)
         : writer {[&]() -> Writers {
             //!TODO
             throw std::runtime_error("streams are currently not supported");
@@ -182,9 +185,9 @@ void writer::write(record_view r) {
     buffer.writeData(r.alt);
     buffer.writeData(r.filter);
     buffer.writeData(r.info);
-    l_shared = buffer.buffer.size() - 8;
+    l_shared = static_cast<uint32_t>(buffer.buffer.size()) - 8;
     buffer.writeData(r.format);
-    l_indiv = buffer.buffer.size() - l_shared - 8;
+    l_indiv = static_cast<uint32_t>(buffer.buffer.size()) - l_shared - 8;
 
     // overwrite l_shared with correct data
     bgzfPack<uint32_t>(l_shared, buffer.buffer.data());

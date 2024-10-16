@@ -1,18 +1,20 @@
-// -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2023, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2023, Knut Reinert & MPI für molekulare Genetik
-// This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
-// shipped with this file.
-// -----------------------------------------------------------------------------------------------------
+// SPDX-FileCopyrightText: 2006-2023, Knut Reinert & Freie Universität Berlin
+// SPDX-FileCopyrightText: 2016-2023, Knut Reinert & MPI für molekulare Genetik
+// SPDX-License-Identifier: BSD-3-Clause
 #pragma once
+
+#include "../detail/compare.h"
 
 #include <cstddef>
 #include <optional>
 #include <span>
+#include <string>
 #include <string_view>
 #include <vector>
 
 namespace ivio::bcf {
+
+struct record;
 
 struct record_view {
     int32_t                  chromId;
@@ -29,6 +31,9 @@ struct record_view {
     std::span<uint8_t const> filter;
     std::span<uint8_t const> info;
     std::span<uint8_t const> format;
+
+    operator record() const;
+    auto operator<=>(record_view const& _rhs) const = default;
 };
 
 struct record {
@@ -47,42 +52,57 @@ struct record {
     std::vector<uint8_t>     info;
     std::vector<uint8_t>     format;
 
-    record() = default;
-    record(record_view v)
-        : chromId   {v.chromId}
-        , pos       {v.pos}
-        , rlen      {v.rlen}
-        , qual      {v.qual}
-        , n_info    {v.n_info}
-        , n_allele  {v.n_allele}
-        , n_sample  {v.n_sample}
-        , n_fmt     {v.n_fmt}
-        , id        {v.id}
-        , ref       {v.ref}
-        , alt       {begin(v.alt), end(v.alt)}
-        , filter    {begin(v.filter), end(v.filter)}
-        , info      {begin(v.info), end(v.info)}
-        , format    {begin(v.format), end(v.format)}
-    {}
-    operator record_view() const {
-        return record_view {
-            chromId,
-            pos,
-            rlen,
-            qual,
-            n_info,
-            n_allele,
-            n_sample,
-            n_fmt,
-            id,
-            ref,
-            alt,
-            filter,
-            info,
-            format,
-        };
-    }
+    operator record_view() const;
+    auto operator<=>(record const&) const = default;
 };
 
 
+// Implementation of the convert operators
+inline record_view::operator record() const {
+    return {
+        .chromId  = chromId,
+        .pos      = pos,
+        .rlen     = rlen,
+        .qual     = qual,
+        .n_info   = n_info,
+        .n_allele = n_allele,
+        .n_sample = n_sample,
+        .n_fmt    = n_fmt,
+        .id       = std::string{id},
+        .ref      = std::string{ref},
+        .alt      = std::vector(begin(alt), end(alt)),
+        .filter   = std::vector(begin(filter), end(filter)),
+        .info     = std::vector(begin(info), end(info)),
+        .format   = std::vector(begin(format), end(format)),
+    };
 }
+inline record::operator record_view() const {
+    return {
+        .chromId  = chromId,
+        .pos      = pos,
+        .rlen     = rlen,
+        .qual     = qual,
+        .n_info   = n_info,
+        .n_allele = n_allele,
+        .n_sample = n_sample,
+        .n_fmt    = n_fmt,
+        .id       = id,
+        .ref      = ref,
+        .alt      = alt,
+        .filter   = filter,
+        .info     = info,
+        .format   = format,
+    };
+}
+}
+
+// Specialization to describe their common types
+template <>
+struct std::common_type<ivio::bcf::record, ivio::bcf::record_view> {
+    using type = ivio::bcf::record;
+};
+
+template <>
+struct std::common_type<ivio::bcf::record_view, ivio::bcf::record> {
+    using type = ivio::bcf::record;
+};

@@ -1,9 +1,6 @@
-// -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2023, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2023, Knut Reinert & MPI für molekulare Genetik
-// This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
-// shipped with this file.
-// -----------------------------------------------------------------------------------------------------
+// SPDX-FileCopyrightText: 2006-2023, Knut Reinert & Freie Universität Berlin
+// SPDX-FileCopyrightText: 2016-2023, Knut Reinert & MPI für molekulare Genetik
+// SPDX-License-Identifier: BSD-3-Clause
 #include "../detail/buffered_writer.h"
 #include "../detail/file_writer.h"
 #include "../detail/stream_writer.h"
@@ -15,10 +12,10 @@
 
 template <>
 struct ivio::writer_base<ivio::sam::writer>::pimpl {
-    using Writers = std::variant<file_writer,
-                                 buffered_writer<zlib_file_writer>,
-                                 stream_writer,
-                                 buffered_writer<zlib_stream_writer>
+    using Writers = std::variant<ivio::file_writer,
+                                 ivio::buffered_writer<ivio::zlib_file_writer>,
+                                 ivio::stream_writer,
+                                 ivio::buffered_writer<ivio::zlib_stream_writer>
                                  >;
 
     ivio::sam::writer::config config;

@@ -1,9 +1,6 @@
-// -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2023, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2023, Knut Reinert & MPI für molekulare Genetik
-// This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
-// shipped with this file.
-// -----------------------------------------------------------------------------------------------------
+// SPDX-FileCopyrightText: 2006-2023, Knut Reinert & Freie Universität Berlin
+// SPDX-FileCopyrightText: 2016-2023, Knut Reinert & MPI für molekulare Genetik
+// SPDX-License-Identifier: BSD-3-Clause
 #pragma once
 
 #include "concepts.h"
@@ -30,9 +27,9 @@ public:
     auto operator=(stream_reader const&) -> stream_reader& = delete;
     auto operator=(stream_reader&&) -> stream_reader& = delete;
 
-    size_t read(std::ranges::sized_range auto&& range) const {
-        stream.read(&*std::ranges::begin(range), std::ranges::size(range));
-        return stream.gcount();
+    size_t read(std::ranges::contiguous_range auto&& range) const {
+        static_assert(std::same_as<std::ranges::range_value_t<decltype(range)>, char>);
+        return stream.rdbuf()->sgetn(std::ranges::data(range), std::ranges::size(range));
     }
 
     auto tell() const -> size_t {

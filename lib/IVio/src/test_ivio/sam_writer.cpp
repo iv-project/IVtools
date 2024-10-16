@@ -1,20 +1,12 @@
-// -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2023, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2023, Knut Reinert & MPI für molekulare Genetik
-// This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
-// shipped with this file.
-// -----------------------------------------------------------------------------------------------------
-#include <catch2/catch.hpp>
+// SPDX-FileCopyrightText: 2006-2023, Knut Reinert & Freie Universität Berlin
+// SPDX-FileCopyrightText: 2016-2023, Knut Reinert & MPI für molekulare Genetik
+// SPDX-License-Identifier: BSD-3-Clause
+#include "utilities.h"
+
+#include <catch2/catch_all.hpp>
 #include <filesystem>
 #include <fstream>
 #include <ivio/ivio.h>
-
-static auto read_file(std::filesystem::path p) -> std::string {
-    auto fs = std::ifstream{p};
-    auto buffer = std::stringstream{};
-    buffer << fs.rdbuf();
-    return buffer.str();
-}
 
 TEST_CASE("writing sam files", "[sam][writer]") {
     auto tmp = std::filesystem::temp_directory_path() / "ivio_test";
@@ -116,7 +108,7 @@ TEST_CASE("writing sam files", "[sam][writer]") {
     }
 
     SECTION("Write to std::ofstream") {
-        auto fs = std::ofstream{tmp / "file.sam"};
+        auto fs = std::ofstream{tmp / "file.sam", std::ios::binary};
         auto writer = ivio::sam::writer{{.output = fs, .header = test_header}};
         for (auto r : test_data) {
             writer.write(r);

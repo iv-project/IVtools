@@ -1,9 +1,6 @@
-// -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2023, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2023, Knut Reinert & MPI für molekulare Genetik
-// This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
-// shipped with this file.
-// -----------------------------------------------------------------------------------------------------
+// SPDX-FileCopyrightText: 2006-2023, Knut Reinert & Freie Universität Berlin
+// SPDX-FileCopyrightText: 2016-2023, Knut Reinert & MPI für molekulare Genetik
+// SPDX-License-Identifier: BSD-3-Clause
 #pragma once
 
 #include <cassert>
@@ -20,12 +17,15 @@ struct reader_base {
         using value_type = typename reader::record;
 
         reader* reader_{};
-        std::optional<record_view> nextItem = [this]() -> std::optional<record_view> { if (reader_) return reader_->next(); return std::nullopt; }();
+        std::optional<record_view> nextItem = [this]() -> std::optional<record_view> {
+            if (reader_) return reader_->next();
+            return std::nullopt;
+        }();
 
         auto operator*() const -> record_view {
            return *nextItem;
         }
-        auto operator->() const -> record_view* {
+        auto operator->() const -> record_view const* {
             return &*nextItem;
         }
         auto operator++() -> iter& {
@@ -37,19 +37,14 @@ struct reader_base {
             nextItem = reader_->next();
             return currentItem;
         }
-        auto operator==(iter const& _other) const {
+        bool operator==([[maybe_unused]] iter const& _other) const {
             assert(reader_);
             assert(_other.reader_ == nullptr);
             return !nextItem.has_value();
         }
-        //!WORKAROUND clang15 is requiring this
-        auto operator!=(iter const& _other) const {
-            return !(*this == _other);
-        }
-
     };
 
-    struct pimpl; //!WORKAROUND, this should be protected, but clang15 fails, see readLine
+    struct pimpl;
 protected:
 
     std::unique_ptr<pimpl> pimpl_;
@@ -57,9 +52,13 @@ public:
     reader_base(std::unique_ptr<pimpl> pimpl_)
         : pimpl_{std::move(pimpl_)}
     {}
+
+    //!doc: see record_reader_c<reader> concept
     friend auto begin(reader& reader_) {
         return iter{&reader_};
     }
+
+    //!doc: see record_reader_c<reader> concept
     friend auto end(reader&) {
         return iter{nullptr};
     }

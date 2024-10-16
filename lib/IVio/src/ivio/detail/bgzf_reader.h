@@ -1,14 +1,12 @@
-// -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2023, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2023, Knut Reinert & MPI für molekulare Genetik
-// This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
-// shipped with this file.
-// -----------------------------------------------------------------------------------------------------
+// SPDX-FileCopyrightText: 2006-2023, Knut Reinert & Freie Universität Berlin
+// SPDX-FileCopyrightText: 2016-2023, Knut Reinert & MPI für molekulare Genetik
+// SPDX-License-Identifier: BSD-3-Clause
 #pragma once
 
 #include "buffered_reader.h"
 #include "file_reader.h"
 #include "mmap_reader.h"
+#include "portable_endian.h"
 #include "stream_reader.h"
 
 #include <algorithm>
@@ -104,14 +102,19 @@ struct ZlibContext {
         if (in.size() < BlockFooterLength) {
             throw std::runtime_error{"BGZF block too short. " + std::to_string(in.size())};
         }
-
+        if (in.size() > std::numeric_limits<uint32_t>::max()) {
+            throw std::runtime_error{"BGZF block is too long, must fit into 32bit. " + std::to_string(in.size())};
+        }
+        if (out.size() > std::numeric_limits<uint32_t>::max()) {
+            throw std::runtime_error{"output buffer is to long, must fit into 32bits. " + std::to_string(out.size())};
+        }
 //        if (!detail::bgzf_compression::validate_header(std::span{srcBegin, srcLength})) {
 //            throw io_error("Invalid BGZF block header.");
 //        }
         strm.next_in   = (Bytef *)in.data();
         strm.next_out  = (Bytef *)out.data();
-        strm.avail_in  = in.size() - BlockFooterLength;
-        strm.avail_out = out.size();
+        strm.avail_in  = static_cast<uint32_t>(in.size()) - BlockFooterLength;
+        strm.avail_out = static_cast<uint32_t>(out.size());
 
         auto status = inflate(&strm, Z_FINISH);
         if (status != Z_STREAM_END) {
@@ -119,7 +122,7 @@ struct ZlibContext {
         }
 
         // Compute and check checksum
-        unsigned crc = crc32(crc32(0, nullptr, 0), (Bytef *)out.data(), out.size() - strm.avail_out);
+        unsigned crc = crc32(crc32(0, nullptr, 0), (Bytef *)out.data(), static_cast<uint32_t>(out.size() - strm.avail_out));
         unsigned ecrc = bgzfUnpack<uint32_t>(in.data() + in.size() - 8);
         if (ecrc != crc)
             throw std::runtime_error{"BGZF wrong checksum." + std::to_string(ecrc) + " " + std::to_string(crc)};
@@ -153,7 +156,8 @@ struct bgzf_reader {
 
     ~bgzf_reader() = default;
 
-    size_t read(std::ranges::sized_range auto&& range) {
+    size_t read(std::ranges::contiguous_range auto&& range) {
+        static_assert(std::same_as<std::ranges::range_value_t<decltype(range)>, char>);
         while(true) {
             auto [ptr, avail_in] = reader.read(18);
             if (avail_in == 0) return 0;

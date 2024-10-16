@@ -1,9 +1,6 @@
-// -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2023, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2023, Knut Reinert & MPI für molekulare Genetik
-// This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
-// shipped with this file.
-// -----------------------------------------------------------------------------------------------------
+// SPDX-FileCopyrightText: 2006-2023, Knut Reinert & Freie Universität Berlin
+// SPDX-FileCopyrightText: 2016-2023, Knut Reinert & MPI für molekulare Genetik
+// SPDX-License-Identifier: BSD-3-Clause
 #include "../detail/bgzf_reader.h"
 #include "../detail/bgzf_mt_reader.h"
 #include "../detail/buffered_reader.h"
@@ -11,7 +8,6 @@
 #include "../detail/mmap_reader.h"
 #include "../detail/stream_reader.h"
 #include "../detail/zlib_file_reader.h"
-#include "../detail/zlib_mmap2_reader.h"
 #include "reader.h"
 
 #include <cassert>
@@ -20,34 +16,15 @@
 #include <optional>
 #include <ranges>
 
-// Implementation taken from cpp reference and adjusted: https://en.cppreference.com/w/cpp/numeric/bit_cast
-template <class To, class From>
-std::enable_if_t<
-    sizeof(To) == sizeof(From) &&
-    std::is_trivially_copyable_v<From> &&
-    std::is_trivially_copyable_v<To>,
-    To>
-// constexpr support needs compiler magic
-bit_cast(const From& src) noexcept {
-#if __GNUC__ == 10 //!WORKAROUND missing bit_cast in g++10
-    static_assert(std::is_trivially_constructible_v<To>,
-        "This implementation additionally requires "
-        "destination type to be trivially constructible");
-    To dst;
-    std::memcpy(&dst, &src, sizeof(To));
-    return dst;
-#else
-    return std::bit_cast<To>(src);
-#endif
-}
-
 namespace ivio {
 
 namespace {
 // helper type for the visitor #4
 template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
-// explicit deduction guide (not needed as of C++20) //!WORKAROUND but at least clang15 needs it
+//!WORKAROUND clang15/16 and IntelLLVM need explicit deduction guides
+#if (defined(__clang_major__) && __clang_major__ < 17) || defined(__INTEL_LLVM_COMPILER)
 template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
+#endif
 
 struct bcf_buffer {
     char const* iter{};
@@ -96,7 +73,7 @@ struct bcf_buffer {
     auto readFloat() -> std::optional<float> {
        auto q     = ivio::bgzfUnpack<float>(iter);
        iter += 4;
-       if (q == bit_cast<float>(uint32_t{0b0111'1111'1000'0000'0000'0000'0001})) return std::nullopt;
+       if (q == std::bit_cast<float>(uint32_t{0b0111'1111'1000'0000'0000'0000'0001})) return std::nullopt;
        return {q};
     }
 
@@ -106,7 +83,11 @@ struct bcf_buffer {
             throw std::runtime_error("BCF error: unexpected type: " + bcf_type(t));
         }
         if (l == 15) {
-           l = readInt();
+            auto v = readInt();
+            if (v <= 0 && v < 256) {
+                throw std::runtime_error{"BCT error: unexpected length (0 <= v < 256): " + std::to_string(v)};
+            }
+            l = static_cast<uint8_t>(v);
         }
         auto value = std::string_view{iter, iter+l};
         iter += l;
@@ -119,7 +100,11 @@ struct bcf_buffer {
             throw std::runtime_error("BCF error: unexpected type: " + bcf_type(t));
         }
         if (l == 15) {
-            l = readInt();
+            auto v = readInt();
+            if (v <= 0 && v < 256) {
+                throw std::runtime_error{"BCT error: unexpected length (0 <= v < 256): " + std::to_string(v)};
+            }
+            l = static_cast<uint8_t>(v);
         }
         auto res = std::vector<int32_t>{};
         res.resize(l);
@@ -135,7 +120,11 @@ struct bcf_buffer {
             throw std::runtime_error("BCF error: unexpected type: " + bcf_type(t));
         }
         if (l == 15) {
-            l = readInt();
+            auto v = readInt();
+            if (v <= 0 && v < 256) {
+                throw std::runtime_error{"BCT error: unexpected length (0 <= v < 256): " + std::to_string(v)};
+            }
+            l = static_cast<uint8_t>(v);
         }
         auto res = std::vector<float>{};
         res.resize(l);
@@ -189,7 +178,7 @@ struct reader_base<bcf::reader>::pimpl {
             if (threadNbr == 0) {
                 return make_buffered_reader<1<<16>(bgzf_reader{mmap_reader{file}});
             }
-            return bgzf_mt_reader{mmap_reader{file}, threadNbr};
+            return make_buffered_reader<1<<16>(bgzf_mt_reader{mmap_reader{file}, threadNbr});
         }()}
     {}
     pimpl(std::istream& file, size_t threadNbr)
@@ -197,7 +186,7 @@ struct reader_base<bcf::reader>::pimpl {
             if (threadNbr == 0) {
                 return make_buffered_reader<1<<16>(bgzf_reader{stream_reader{file}});
             }
-            return bgzf_mt_reader{stream_reader{file}, threadNbr};
+            return make_buffered_reader<1<<16>(bgzf_mt_reader{stream_reader{file}, threadNbr});
         }()}
     {}
 
@@ -237,8 +226,9 @@ struct reader_base<bcf::reader>::pimpl {
             throw std::runtime_error("faulty bcf header");
         }
 
-        auto tableHeader = std::string_view{ptr, txt_len-s};
-#if __clang__ //!WORKAROUND for at least clang15, std::views::split is not working
+        auto tableHeader = std::string_view{ptr, txt_len-s-2};
+//!WORKAROUND clang15's split_view is not working
+#if __clang_major__ == 15
         {
             size_t start = 0;
             size_t pos = 0;
@@ -246,11 +236,11 @@ struct reader_base<bcf::reader>::pimpl {
                 genotypes.emplace_back(tableHeader.begin() + start, tableHeader.begin() + pos);
                 start = pos+1;
             }
-            genotypes.emplace_back(tableHeader.begin() + start);
+            genotypes.emplace_back(tableHeader.begin() + start, tableHeader.end());
         }
 #else
         for (auto v : std::views::split(tableHeader, '\t')) {
-    #if __GNUC__ == 11  || __GNUC__ == 10 // !WORKAROUND for gcc11 and gcc10
+    #if __GNUC__ == 11 // !WORKAROUND for gcc11
                 auto cv = std::ranges::common_view{v};
                 genotypes.emplace_back(cv.begin(), cv.end());
     #else
@@ -313,12 +303,12 @@ struct reader_base<bcf::reader>::pimpl {
                 auto a = buffer.readAny();
                 std::visit(overloaded{
                     [](std::nullptr_t) {},
-                    [](int32_t v) {},
-                    [](float v) {},
-                    [](char v) {},
-                    [](std::vector<int32_t> const& v) {},
-                    [](std::vector<float> const& v) {},
-                    [](std::string_view v) {}
+                    [](int32_t) {},
+                    [](float) {},
+                    [](char) {},
+                    [](std::vector<int32_t> const&) {},
+                    [](std::vector<float> const&) {},
+                    [](std::string_view) {}
                 }, a);
             }
         });

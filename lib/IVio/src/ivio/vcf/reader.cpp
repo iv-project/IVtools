@@ -1,40 +1,18 @@
-// -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2023, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2023, Knut Reinert & MPI für molekulare Genetik
-// This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
-// shipped with this file.
-// -----------------------------------------------------------------------------------------------------
+// SPDX-FileCopyrightText: 2006-2023, Knut Reinert & Freie Universität Berlin
+// SPDX-FileCopyrightText: 2016-2023, Knut Reinert & MPI für molekulare Genetik
+// SPDX-License-Identifier: BSD-3-Clause
 #include "../detail/buffered_reader.h"
 #include "../detail/file_reader.h"
 #include "../detail/mmap_reader.h"
 #include "../detail/stream_reader.h"
+#include "../detail/utilities.h"
 #include "../detail/zlib_file_reader.h"
-#include "../detail/zlib_mmap2_reader.h"
 #include "reader.h"
 
 #include <cassert>
-#include <charconv>
 #include <functional>
 #include <optional>
 #include <ranges>
-
-namespace {
-template <typename T>
-auto convertTo(std::string_view view) {
-    T value{}; //!Should not be initialized with {}, but gcc warns...
-#if __GNUC__ == 10 //!WORKAROUND missing std::from_chars in g++10
-    std::stringstream ss;
-    ss << view;
-    ss >> value;
-#else
-    auto result = std::from_chars(begin(view), end(view), value);
-    if (result.ec == std::errc::invalid_argument) {
-        throw std::runtime_error{"can't convert to int"};
-    }
-#endif
-    return value;
-}
-}
 
 namespace ivio {
 
@@ -46,23 +24,26 @@ struct reader_base<vcf::reader>::pimpl {
     std::vector<std::tuple<std::string, std::string>> header;
     std::vector<std::string> genotypes;
 
-    pimpl(std::filesystem::path file, bool)
+    pimpl(std::filesystem::path file)
         : ureader {[&]() -> VarBufferedReader {
-            if (file.extension() == ".vcf") {
-                return mmap_reader{file.c_str()};
-            } else if (file.extension() == ".gz") {
-                return zlib_reader{mmap_reader{file.c_str()}};
+            auto reader = mmap_reader{file};
+            auto [buffer, len] = reader.read(2);
+            if (zlib_reader::isGZipHeader({buffer, len})) {
+                return zlib_reader{std::move(reader)};
             }
-            throw std::runtime_error("unknown file extension");
+            return reader;
         }()}
     {}
-    pimpl(std::istream& file, bool compressed)
+    pimpl(std::istream& file)
         : ureader {[&]() -> VarBufferedReader {
-            if (!compressed) {
-                return stream_reader{file};
-            } else {
-                return zlib_reader{stream_reader{file}};
+            auto reader = stream_reader{file};
+            auto buffer = std::array<char, 2>{};
+            auto len = reader.read(buffer);
+            reader.seek(0);
+            if (zlib_reader::isGZipHeader({buffer.data(), len})) {
+                return zlib_reader{std::move(reader)};
             }
+            return reader;
         }()}
     {}
 
@@ -88,7 +69,8 @@ struct reader_base<vcf::reader>::pimpl {
             auto start = 1;
             auto end = ureader.readUntil('\n', start);
             auto tableHeader = ureader.string_view(start, end);
-#if __clang__ //!WORKAROUND for at least clang15, std::views::split is not working
+//!WORKAROUND clang15's split_view is not working
+#if __clang_major__ == 15
         {
             size_t start = 0;
             size_t pos = 0;
@@ -100,7 +82,7 @@ struct reader_base<vcf::reader>::pimpl {
         }
 #else
         for (auto v : std::views::split(tableHeader, '\t')) {
-    #if __GNUC__ == 11  || __GNUC__ == 10 // !WORKAROUND for gcc11 and gcc10
+    #if __GNUC__ == 11 // !WORKAROUND for gcc11
                 auto cv = std::ranges::common_view{v};
                 genotypes.emplace_back(cv.begin(), cv.end());
     #else
@@ -141,7 +123,7 @@ namespace ivio::vcf {
 
 reader::reader(config const& config_)
     : reader_base{std::visit([&](auto& p) {
-        return std::make_unique<pimpl>(p, config_.compressed);
+        return std::make_unique<pimpl>(p);
     }, config_.input)}
 {
     pimpl_->readHeader();
@@ -170,11 +152,11 @@ auto reader::next() -> std::optional<record_view> {
 
     return record_view {
         .chrom   = chrom,
-        .pos     = convertTo<int32_t>(pos),
+        .pos     = detail::convertTo<int32_t>(pos),
         .id      = id,
         .ref     = ref,
         .alts    = alts,
-        .qual    = convertTo<float>(qual),
+        .qual    = detail::convertTo<float>(qual),
         .filters = filters,
         .infos   = infos,
         .formats = formats,

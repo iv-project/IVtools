@@ -1,9 +1,6 @@
-// -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2023, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2023, Knut Reinert & MPI für molekulare Genetik
-// This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
-// shipped with this file.
-// -----------------------------------------------------------------------------------------------------
+// SPDX-FileCopyrightText: 2006-2023, Knut Reinert & Freie Universität Berlin
+// SPDX-FileCopyrightText: 2016-2023, Knut Reinert & MPI für molekulare Genetik
+// SPDX-License-Identifier: BSD-3-Clause
 #include "../detail/buffered_writer.h"
 #include "../detail/file_writer.h"
 #include "../detail/stream_writer.h"
@@ -70,7 +67,7 @@ void writer::write(record_view record) {
         buffer += record.id;
         buffer += '\n';
         auto seq = record.seq;
-        while (seq.size() > contig_length) {
+        while (seq.size() >= contig_length) {
             buffer += seq.substr(0, contig_length);
             buffer += '\n';
             seq = seq.substr(contig_length);

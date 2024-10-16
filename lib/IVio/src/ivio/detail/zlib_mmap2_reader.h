@@ -1,10 +1,8 @@
-// -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2023, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2023, Knut Reinert & MPI für molekulare Genetik
-// This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
-// shipped with this file.
-// -----------------------------------------------------------------------------------------------------
+// SPDX-FileCopyrightText: 2006-2023, Knut Reinert & Freie Universität Berlin
+// SPDX-FileCopyrightText: 2016-2023, Knut Reinert & MPI für molekulare Genetik
+// SPDX-License-Identifier: BSD-3-Clause
 #pragma once
+#if 0
 
 #include "mmap_reader.h"
 
@@ -126,7 +124,7 @@ struct zlib_mmap2_reader : protected mmap_reader {
         }
     }
 
-    auto read(size_t ct) -> std::tuple<char const*, size_t> {
+    auto read(size_t /*ct*/) -> std::tuple<char const*, size_t> {
         return {nullptr, 0}; //!TODO this is broken
     }
 
@@ -147,3 +145,4 @@ struct zlib_mmap2_reader : protected mmap_reader {
 
 static_assert(BufferedReadable<zlib_mmap2_reader>);
 }
+#endif

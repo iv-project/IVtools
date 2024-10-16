@@ -1,9 +1,6 @@
-// -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2023, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2023, Knut Reinert & MPI für molekulare Genetik
-// This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
-// shipped with this file.
-// -----------------------------------------------------------------------------------------------------
+// SPDX-FileCopyrightText: 2006-2023, Knut Reinert & Freie Universität Berlin
+// SPDX-FileCopyrightText: 2016-2023, Knut Reinert & MPI für molekulare Genetik
+// SPDX-License-Identifier: BSD-3-Clause
 #pragma once
 
 #include "record.h"
@@ -21,9 +18,6 @@ namespace ivio::fasta {
 struct reader_mt_config {
     // Source: file or stream
     std::variant<std::filesystem::path, std::reference_wrapper<std::istream>> input;
-
-    // This is only relevant if a stream is being used
-    bool compressed{};
 };
 
 struct reader_mt_pimpl;
@@ -44,7 +38,7 @@ public:
     auto next() -> std::optional<record_view>;
 
     friend auto begin(reader_mt& reader) -> iter;
-    friend auto end(reader_mt& reader) {
+    friend auto end(reader_mt& /*reader*/) {
         return nullptr;
     }
 };

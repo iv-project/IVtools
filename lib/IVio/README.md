@@ -1,3 +1,9 @@
+<!--
+    SPDX-FileCopyrightText: 2006-2023, Knut Reinert & Freie Universität Berlin
+    SPDX-FileCopyrightText: 2016-2023, Knut Reinert & MPI für molekulare Genetik
+    SPDX-License-Identifier: CC-BY-4.0
+-->
+
 # IVio
 **IVio**, pronounced **for you** aka **io4**.
 A c++20 library for **bioinformatics**. Providing functions for reading and writing different file formats.
@@ -27,9 +33,7 @@ This demonstrates how reading a file and printing it to the command line looks l
 
 int main(int argc, char** argv) {
     auto inputFile = std::filesystem::path{argv[1]};
-    auto reader = ivio::fasta::reader{{.input = inputFile,
-                                       .compressed = false, // false by default, if true a gzip file is expected
-    }};
+    auto reader = ivio::fasta::reader{{.input = inputFile}};
     for (auto record_view : reader) {
         std::cout << "id: " << record_view.id << "\n";
         std::cout << "seq: " << record_view.seq << "\n";

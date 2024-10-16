@@ -1,10 +1,7 @@
-// -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2023, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2023, Knut Reinert & MPI für molekulare Genetik
-// This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
-// shipped with this file.
-// -----------------------------------------------------------------------------------------------------
-#include <catch2/catch.hpp>
+// SPDX-FileCopyrightText: 2006-2023, Knut Reinert & Freie Universität Berlin
+// SPDX-FileCopyrightText: 2016-2023, Knut Reinert & MPI für molekulare Genetik
+// SPDX-License-Identifier: BSD-3-Clause
+#include <catch2/catch_all.hpp>
 #include <filesystem>
 #include <fstream>
 #include <ivio/ivio.h>
@@ -113,7 +110,7 @@ TEST_CASE("reading sam files", "[sam][reader]") {
     }
 
     SECTION("Read from std::ifstream") {
-        auto ifs = std::ifstream{tmp / "file.sam"};
+        auto ifs = std::ifstream{tmp / "file.sam", std::ios::binary};
         auto reader = ivio::sam::reader{{ifs}};
         CHECK(reader.header == expected_header);
         auto vec = std::vector(begin(reader), end(reader));

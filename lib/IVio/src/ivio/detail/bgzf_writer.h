@@ -1,12 +1,10 @@
-// -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2023, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2023, Knut Reinert & MPI für molekulare Genetik
-// This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
-// shipped with this file.
-// -----------------------------------------------------------------------------------------------------
+// SPDX-FileCopyrightText: 2006-2023, Knut Reinert & Freie Universität Berlin
+// SPDX-FileCopyrightText: 2016-2023, Knut Reinert & MPI für molekulare Genetik
+// SPDX-License-Identifier: BSD-3-Clause
 #pragma once
 
 #include "file_writer.h"
+#include "portable_endian.h"
 
 #include <algorithm>
 #include <cassert>
@@ -91,6 +89,12 @@ struct ZlibContext {
     size_t compressBlock(std::span<char const> in, std::span<char> out) {
         reset();
 
+        if (in.size() > std::numeric_limits<uint32_t>::max()) {
+            throw std::runtime_error{"input buffer is too long, must fit into 32bit. " + std::to_string(in.size())};
+        }
+        if (out.size() > std::numeric_limits<uint32_t>::max()) {
+            throw std::runtime_error{"output buffer is to long, must fit into 32bits. " + std::to_string(out.size())};
+        }
 /*        if (in.size() < BlockFooterLength) {
             throw "BGZF block too short. " + std::to_string(in.size());
         }*/
@@ -103,18 +107,18 @@ struct ZlibContext {
         }
         stream.next_in   = (Bytef *)in.data();
         stream.next_out  = (Bytef *)out.data()+18;
-        stream.avail_in  = in.size();
-        stream.avail_out = out.size()-18-BlockFooterLength;
+        stream.avail_in  = static_cast<uint32_t>(in.size());
+        stream.avail_out = static_cast<uint32_t>(out.size())-18-BlockFooterLength;
 
         auto status = deflate(&stream, Z_FINISH);
         if (status != Z_STREAM_END) {
-            throw "Deflation failed. compressed BGZF data is too big. " + std::to_string(stream.avail_in) + " " + std::to_string(stream.avail_out);
+            throw std::runtime_error{"Deflation failed. compressed BGZF data is too big. " + std::to_string(stream.avail_in) + " " + std::to_string(stream.avail_out)};
         }
 
         auto length = out.size() - stream.avail_out;
         bgzf_writer::detail::bgzfPack(static_cast<uint16_t>(length-1ul), &out[16]);
 
-        uint32_t crc = crc32(crc32(0, nullptr, 0), (Bytef *)in.data(), in.size());
+        uint32_t crc = crc32(crc32(0, nullptr, 0), (Bytef *)in.data(), static_cast<uint32_t>(in.size()));
 
         bgzf_writer::detail::bgzfPack(static_cast<uint32_t>(crc), &out[length-8ul]);
         bgzf_writer::detail::bgzfPack(static_cast<uint32_t>(in.size()), &out[length-4ul]);
@@ -163,7 +167,12 @@ struct bgzf_writer_impl {
     auto write(std::span<char const> out) -> size_t {
         auto oldSize = buffer.size();
         buffer.resize(buffer.size() + out.size());
+//!WORKAROUND llvm < 16 does not provide std::ranges::copy
+#if defined(_LIBCPP_VERSION) && _LIBCPP_VERSION < 160000
+        std::copy(out.begin(), out.end(), buffer.data() + oldSize);
+#else
         std::ranges::copy(out, buffer.data() + oldSize);
+#endif
 
         auto writeData = [&](std::span<char const> v) {
             outBuffer.resize(fullLength);

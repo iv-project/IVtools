@@ -1,32 +1,16 @@
-// -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2023, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2023, Knut Reinert & MPI für molekulare Genetik
-// This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
-// shipped with this file.
-// -----------------------------------------------------------------------------------------------------
+// SPDX-FileCopyrightText: 2006-2023, Knut Reinert & Freie Universität Berlin
+// SPDX-FileCopyrightText: 2016-2023, Knut Reinert & MPI für molekulare Genetik
+// SPDX-License-Identifier: BSD-3-Clause
 #include "../detail/buffered_reader.h"
 #include "../detail/file_reader.h"
 #include "../detail/mmap_reader.h"
 #include "../detail/stream_reader.h"
+#include "../detail/utilities.h"
 #include "../detail/zlib_file_reader.h"
-#include "../detail/zlib_mmap2_reader.h"
 #include "reader.h"
-
-#include <charconv>
 
 static_assert(std::ranges::range<ivio::faidx::reader>, "reader must be a range (unittest)");
 static_assert(ivio::record_reader_c<ivio::faidx::reader>, "must fulfill the record_reader concept (unittest)");
-
-template <typename T>
-static auto convertTo(std::string_view view) {
-    T value{}; //!Should not be initialized with {}, but gcc warns...
-    auto result = std::from_chars(begin(view), end(view), value);
-    if (result.ec == std::errc::invalid_argument) {
-        throw std::runtime_error{"can't convert to int"};
-    }
-    return value;
-}
-
 
 namespace ivio {
 
@@ -35,21 +19,26 @@ struct reader_base<faidx::reader>::pimpl {
     VarBufferedReader ureader;
     size_t lastUsed{};
 
-    pimpl(std::filesystem::path file, bool)
+    pimpl(std::filesystem::path file)
         : ureader {[&]() -> VarBufferedReader {
-            if (file.extension() == ".gz") {
-                return zlib_reader{mmap_reader{file.c_str()}};
+            auto reader = mmap_reader{file}; // create a reader and peak into the file
+            auto [buffer, len] = reader.read(2);
+            if (zlib_reader::isGZipHeader({buffer, len})) {
+                return zlib_reader{std::move(reader)};
             }
-            return mmap_reader{file.c_str()};
+            return reader;
         }()}
     {}
-    pimpl(std::istream& file, bool compressed)
+    pimpl(std::istream& file)
         : ureader {[&]() -> VarBufferedReader {
-            if (!compressed) {
-                return stream_reader{file};
-            } else {
-                return zlib_reader{stream_reader{file}};
+            auto reader = stream_reader{file};
+            auto buffer = std::array<char, 2>{};
+            auto len = reader.read(buffer);
+            reader.seek(0);
+            if (zlib_reader::isGZipHeader({buffer.data(), len})) {
+                return zlib_reader{std::move(reader)};
             }
+            return reader;
         }()}
     {}
 };
@@ -80,7 +69,7 @@ namespace ivio::faidx {
 
 reader::reader(config const& config_)
     : reader_base{std::visit([&](auto& p) {
-        return std::make_unique<pimpl>(p, config_.compressed);
+        return std::make_unique<pimpl>(p);
     }, config_.input)}
 {}
 
@@ -92,7 +81,6 @@ auto reader::next() -> std::optional<record_view> {
     auto& ureader  = pimpl_->ureader;
     auto& lastUsed = pimpl_->lastUsed;
 
-    if (ureader.eof(lastUsed)) return std::nullopt;
     ureader.dropUntil(lastUsed);
 
     auto res = readLine<5, '\t'>(*pimpl_);
@@ -101,10 +89,10 @@ auto reader::next() -> std::optional<record_view> {
     auto [id, length, offset, linebases, linewidth] = *res;
 
     return record_view {.id = id,
-                        .length = convertTo<size_t>(length),
-                        .offset = convertTo<size_t>(offset),
-                        .linebases = convertTo<size_t>(linebases),
-                        .linewidth = convertTo<size_t>(linewidth),
+                        .length    = detail::convertTo<size_t>(length),
+                        .offset    = detail::convertTo<size_t>(offset),
+                        .linebases = detail::convertTo<size_t>(linebases),
+                        .linewidth = detail::convertTo<size_t>(linewidth),
                       };
 }
 

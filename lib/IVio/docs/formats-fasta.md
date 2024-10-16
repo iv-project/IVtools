@@ -1,12 +1,17 @@
+<!--
+    SPDX-FileCopyrightText: 2006-2023, Knut Reinert & Freie Universität Berlin
+    SPDX-FileCopyrightText: 2016-2023, Knut Reinert & MPI für molekulare Genetik
+    SPDX-License-Identifier: CC-BY-4.0
+-->
 # FASTA
 
-Support reading and writing [fasta files](https://blast.ncbi.nlm.nih.gov/doc/blast-topics/).
+Support reading and writing [fasta files 🔗](https://blast.ncbi.nlm.nih.gov/doc/blast-topics/).
 All classes/functions are available in the `ivio::fasta` namespace.
 
 [TOC]
 
 ## Record and RecordView (`record`, `record_view`) { #markdown data-toc-label="Record and RecordView" }
-IVio provides the datastructures `ivio::fasta::record` and `ivio::fasta::record_view`. These are the typical input/output arguments of the readers and writers.
+IVio provides the datastructures `ivio::fasta::record` and `ivio::fasta::record_view`. These are typically used as input/output arguments of the readers and writers.
 These datastructures convertible to each other.
 
 The `record_view` layout
@@ -26,7 +31,7 @@ struct record {
 
 ## Reader (`reader`, `reader::config`) { #markdown data-toc-label="Reader" }
 The `ivio::fasta::reader` accepts a `ivio::fasta::reader::config` object for initialization. It initializes an object
-that enables you to iterate over the records of a file. It is is for-range compatible, meaning it fulfils c++ concepts of  [range](https://en.cppreference.com/w/cpp/ranges/range) and [LegacyInputIterator](https://en.cppreference.com/w/cpp/named_req/InputIterator).
+that enables you to iterate over the records of a file. It is is for-range compatible, meaning it fulfills c++ concepts of  [range](https://en.cppreference.com/w/cpp/ranges/range) and [LegacyInputIterator](https://en.cppreference.com/w/cpp/named_req/InputIterator).
 When looping over a reader it returns `record_view` objects that are only valid until next record is being requested from the reader.
 To get ownership of the data, it is required to create an object of type `record`.
 
@@ -41,7 +46,7 @@ struct ivio::fasta::reader::config {
 };
 ```
 
-Overview of the memberfunctions of `ivio::fasta::reader`
+Overview of the member functions of `ivio::fasta::reader`
 ```c++
 struct ivio::fasta::reader {
     /*...*/
@@ -53,7 +58,7 @@ struct ivio::fasta::reader {
 ## Writer (`writer`, `writer::config`) { #markdown data-toc-label="Writer" }
 The `ivio::fasta::writer` provides a single function `write` which takes a `ivio::fasta::record_view` as input.
 The class is initialized with a `ivio::fasta::writer::config` object which has the options:
-```
+```c++
 struct ivio::fasta::writer::config {
     // Source: file or stream
     std::variant<std::filesystem::path, std::reference_wrapper<std::ostream>> output;
@@ -68,20 +73,20 @@ struct ivio::fasta::writer::config {
 ### Example - Reading record by record
 In this example a file is being opened and print to command line
 ```c++
-{% include-markdown "snippets/fasta_example_01.cpp" %}
+{% include-markdown "snippets/fasta_example_01.cpp" start="CC0-1.0" %}
 ```
 **Output**
 ```sh
 {% include-markdown "snippets/fasta_example_01.cpp.out" %}
 ```
 ### Example - Copying a file
-In this example the data is read from the standard input and writen to standard output
+In this example the data is read from the standard input and written to standard output
 ```c++
-{% include-markdown "snippets/fasta_example_02.cpp" %}
+{% include-markdown "snippets/fasta_example_02.cpp" start="CC0-1.0" %}
 ```
 
 ### Example - Reading complete file
 Load complete fasta file into memory:
 ```c++
-{% include-markdown "snippets/fasta_example_03.cpp" %}
+{% include-markdown "snippets/fasta_example_03.cpp" start="CC0-1.0" %}
 ```
