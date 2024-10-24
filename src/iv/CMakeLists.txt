@@ -23,3 +23,5 @@ target_link_libraries(iv
     ivsigma::ivsigma
     clice::clice
 )
+
+target_compile_features(iv PUBLIC cxx_std_20)

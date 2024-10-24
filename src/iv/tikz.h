@@ -4,6 +4,7 @@
 #include <search_schemes/search_schemes.h>
 #include <set>
 #include <unordered_set>
+#include <fmt/ranges.h>
 
 template <typename CB>
 void allErrorConfig(search_schemes::Search s, CB cb, std::vector<int>& errorConf, size_t minError, size_t maxStep) {

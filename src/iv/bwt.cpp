@@ -77,8 +77,11 @@ void app_dna5() {
     fmt::print("reading string T from fasta file...\n");
     auto seqs = loadFastaFile(*cliInput);
 
-//    using OccTable = fmindex_collection::occtable::Bitvector</*.Sigma=*/6>;
+    #if FMC_USE_SDSL
     using OccTable = fmindex_collection::occtable::Sdsl_wt_bldc</*.Sigma=*/256>;
+    #else
+    using OccTable = fmindex_collection::occtable::EprV7</*.Sigma=*/256>;
+    #endif
     using Index    = fmindex_collection::FMIndex<OccTable>;
 
     auto fullIndex = Index{};
@@ -139,8 +142,11 @@ void app_ascii() {
     fmt::print("reading string T from text file...\n");
     auto seqs = loadTextFile(*cliInput);
 
-//    using OccTable = fmindex_collection::occtable::Wavelet</*.Sigma=*/256>;
+    #if FMC_USE_SDSL
     using OccTable = fmindex_collection::occtable::Sdsl_wt_bldc</*.Sigma=*/256>;
+    #else
+    using OccTable = fmindex_collection::occtable::EprV7</*.Sigma=*/256>;
+    #endif
     using Index    = fmindex_collection::FMIndex<OccTable>;
 
     auto fullIndex = Index{};
