@@ -31,6 +31,11 @@ auto cliOutput = clice::Argument{ .parent = &cli,
                                   .tags   = {"required"},
 };
 
+auto cliFastaLineLength = clice::Argument{ .parent = &cli,
+                                           .args   = {"--fasta_line_length"},
+                                           .desc   = "How long should each fasta line be (0: infinite)",
+                                           .value  = size_t{80},
+};
 
 auto cliReadLength = clice::Argument{ .parent = &cli,
                                       .args   = {"-l", "--read_length"},
@@ -229,7 +234,9 @@ void app() {
                                              .readLength = *cliReadLength };
 
 
-        auto writer = ivio::fasta::writer {{*cliOutput}};
+        auto writer = ivio::fasta::writer {{ .output = *cliOutput,
+                                             .length = *cliFastaLineLength==0?std::numeric_limits<int>::max():*cliFastaLineLength,
+                                           }};
         for (size_t i{0}; i < *cliNumberOfReads; ++i) {
             auto error_sub = *cliErrorSubstitutions;
             auto error_ins = *cliErrorInsertions;
