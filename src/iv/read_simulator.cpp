@@ -60,7 +60,7 @@ auto cliErrorDeletions     = clice::Argument{ .parent = &cli,
 };
 auto cliErrorRandom        = clice::Argument{ .parent = &cli,
                                               .args   = {"-e", "--errors"},
-                                              .desc   = "number of errors (randomly choosen S, I or D",
+                                              .desc   = "number of errors (randomly chosen S, I or D)",
                                               .value  = size_t{0},
 };
 

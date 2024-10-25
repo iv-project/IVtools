@@ -32,7 +32,7 @@ auto cliQueryLength      = clice::Argument{ .parent = &cli,
 };
 auto cliReferenceLength  = clice::Argument{ .parent = &cli,
                                             .args   = {"--ref-length"},
-                                            .desc   = "the assumed length of the refernce text",
+                                            .desc   = "the assumed length of the reference text",
                                             .value  = int64_t{1'000'000'000},
 };
 auto cliMinAllowedErrors = clice::Argument{ .parent = &cli,
