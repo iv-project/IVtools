@@ -69,6 +69,13 @@ auto cliErrorRandom        = clice::Argument{ .parent = &cli,
                                               .value  = size_t{0},
 };
 
+auto cliSeed               = clice::Argument{ .parent = &cli,
+                                              .args   = {"--seed"},
+                                              .desc   = "seed to initialize the random generator",
+                                              .value  = (unsigned int){0},
+};
+
+
 
 char randomPick() {
     switch(rand()% 4) {
@@ -226,6 +233,7 @@ struct ReadGenerator {
 
 
 void app() {
+    srand(*cliSeed);
     if (cliInput) {
         auto sequences = loadFasta(*cliInput);
         fmt::print("loaded fasta file - start simulating\n");
