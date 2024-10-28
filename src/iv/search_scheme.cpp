@@ -61,6 +61,7 @@ auto cliYaml             = clice::Argument{ .parent = &cli,
 auto cliColumba          = clice::Argument{ .parent = &cli,
                                             .args   = {"--columba"},
                                             .desc   = "generates columba compatible files",
+                                            .value  = std::filesystem::path{}
 };
 auto cliTikz             = clice::Argument{ .parent = &cli,
                                             .args   = {"--tikz"},
@@ -205,22 +206,24 @@ void printTable() {
 }
 
 void printColumba() {
-    std::filesystem::create_directories("columba_output");
+    std::filesystem::create_directories(*cliColumba);
     for (auto const& [key, e] : search_schemes::generator::all) {
-        std::filesystem::create_directories("columba_output/" + key);
+        std::filesystem::create_directories(*cliColumba / key);
 
         // print name
         {
-            auto ofs = std::ofstream{"columba_output/" + key + "/name.txt"};
+            auto ofs = std::ofstream{*cliColumba / key / "name.txt"};
             ofs << key;
         }
         for (auto k{*cliMinAllowedErrors}; k <= *cliMaxAllowedErrors; ++k) {
-            std::filesystem::create_directories("columba_output/" + key + "/" + std::to_string(k));
-
             // generate search schemes
             auto sss = e.generator(*cliMinAllowedErrors, k, *cliAlphabetSize, *cliReferenceLength);
 
-            auto ofs = std::ofstream{"columba_output/" + key + "/" + std::to_string(k) + "/searches.txt"};
+            if (sss.empty()) continue; // no search scheme exists
+
+            std::filesystem::create_directories(*cliColumba / key / std::to_string(k));
+
+            auto ofs = std::ofstream{*cliColumba / key / std::to_string(k) / "searches.txt"};
             for (auto const& s : sss) {
                 fmt::print(ofs, "{{{}}} {{{}}} {{{}}}\n", fmt::join(s.pi, ","), fmt::join(s.l, ","), fmt::join(s.u, ","));
             }
