@@ -13,12 +13,12 @@
     },
     {
       "name": "ivio",
-      "version": "0.4.1",
+      "version": "0.4.2",
       "github_repository": "iv-project/IVio"
     },
     {
       "name": "ivsigma",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "github_repository": "iv-project/IVSigma"
     },
     {
