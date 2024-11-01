@@ -6,9 +6,11 @@
 // -----------------------------------------------------------------------------------------------------
 #include "error_fmt.h"
 #include "tikz.h"
+#include "isNonRedundant.h"
 
 #include <clice/clice.h>
 #include <search_schemes/search_schemes.h>
+
 
 namespace {
 void app();
@@ -101,6 +103,7 @@ void printSingleScheme() {
     fmt::print("number of searches:         {}\n", ss.size());
     fmt::print("valid:                      {}\n", isValid(sss));
     fmt::print("complete:                   {}\n", isComplete(sss, *cliMinAllowedErrors, *cliMaxAllowedErrors));
+    fmt::print("non-redundant:              {}\n", isNonRedundant(sss,*cliMinAllowedErrors, *cliMaxAllowedErrors));
     fmt::print("node count (ham):           {}\n", nodeCount</*Edit=*/false>(ss, *cliAlphabetSize));
     fmt::print("weighted node count (ham):  {}\n", weightedNodeCount</*Edit=*/false>(ss, *cliAlphabetSize, *cliReferenceLength));
     fmt::print("dynamic wnc (ham):          {}\n", weightedNodeCount</*Edit=*/false>(dss, *cliAlphabetSize, *cliReferenceLength));
@@ -151,8 +154,8 @@ void printTable() {
     fmt::print("max errors:          {}\n", *cliMaxAllowedErrors);
     fmt::print("reference length:    {}\n", *cliReferenceLength);
 
-    fmt::print("{:^15} | {:^6} {:^8} {:^6} {:^8} | {:^30} | {:^24}\n", "name", "parts", "searches", "valid", "complete", "node count ham/edit", "weighted node count ham/edit");
-    auto order = std::vector<std::string>{"backtracking", "optimum", "01*0", "01*0_opt", "pigeon", "pigeon_opt", "suffix", "h2-k1", "h2-k2", "h2-k3", "kianfar", "kucherov-k1", "kucherov-k2"};
+    fmt::print("{:^15} | {:^6} {:^8} {:^6} {:^8} | {:^30} | {:^24}\n", "name", "parts", "searches", "valid", "complete", "non-redundant", "node count ham/edit", "weighted node count ham/edit");
+    auto order = std::vector<std::string>{"backtracking", "optimum", "01*0", "01*0_opt", "pigeon", "pigeon_opt", "suffix", "h2-k1", "h2-k2", "h2-k3", "kianfar", "kucherov-k1", "kucherov-k2", "hato"};
     for (auto const& [key, e] : search_schemes::generator::all) {
         if (std::find(order.begin(), order.end(), key) == order.end()) {
             order.push_back(key);
@@ -190,8 +193,10 @@ void printTable() {
             long double countEdit;
         } stat_ss, stat_ss_w, stat_dss, stat_dess;
 
-        auto complete = isComplete(sss, *cliMinAllowedErrors, *cliMaxAllowedErrors);
-        auto valid    = isValid(sss);
+        auto valid         = isValid(sss);
+        auto complete      = isComplete(sss, *cliMinAllowedErrors, *cliMaxAllowedErrors);
+        auto non_redundant = isNonRedundant(sss, *cliMinAllowedErrors, *cliMaxAllowedErrors);
+
         stat_ss   = { .countHam  = nodeCount</*Edit=*/false>(ss, sigma),
                       .countEdit = nodeCount</*Edit=*/true>(ss, sigma)};
         stat_ss_w = { .countHam  = weightedNodeCount</*Edit=*/false>(ss, sigma, N),
@@ -201,7 +206,7 @@ void printTable() {
         stat_dess = { .countHam  = weightedNodeCount</*Edit=*/false>(dss_ham, sigma, N),
                       .countEdit = weightedNodeCount</*Edit=*/true>(dss_edit, sigma, N)};
 
-        fmt::print("{:>15} | {:>6} {:>8} {:^6} {:^8} | {:>15.0f} {:>15.0f}  | {:>12.2f} {:>12.2f} | {:>15.0f} {:>15.0f} | {:>12.2f} {:>12.2f}\n", e.name, parts, sss.size(), valid, complete, stat_ss.countHam, stat_ss.countEdit, stat_ss_w.countHam, stat_ss_w.countEdit, stat_dss.countHam, stat_dss.countEdit, stat_dess.countHam, stat_dess.countEdit);
+        fmt::print("{:>15} | {:>6} {:>8} {:^6} {:^8} {:^10} | {:>15.0f} {:>15.0f}  | {:>12.2f} {:>12.2f} | {:>15.0f} {:>15.0f} | {:>12.2f} {:>12.2f}\n", e.name, parts, sss.size(), valid, complete, non_redundant, stat_ss.countHam, stat_ss.countEdit, stat_ss_w.countHam, stat_ss_w.countEdit, stat_dss.countHam, stat_dss.countEdit, stat_dess.countHam, stat_dess.countEdit);
     }
 }
 
