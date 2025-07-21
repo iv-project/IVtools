@@ -7,36 +7,28 @@
 #include <ivio/ivio.h>
 
 namespace {
-void app_merge();
 auto cli = clice::Argument{ .args   = "fasta",
                             .desc   = "merge fasta files",
 };
 
+
+void app_merge();
 auto cliMerge = clice::Argument{ .parent = &cli,
                                  .args   = "merge",
+                                 .value  = std::vector<std::filesystem::path>{},
                                  .cb     = app_merge,
 };
-
-auto cliInput = clice::Argument{ .parent = &cliMerge,
-                                 .args   = {"-i", "--input"},
-                                 .desc   = "path to multiple fasta files",
-                                 .value  = std::vector<std::filesystem::path>{},
-                                 .tags   = {"required"},
-};
-
 auto cliOutput = clice::Argument{ .parent = &cliMerge,
                                   .args   = {"-o", "--output"},
                                   .desc   = "path to a fasta file",
-                                  .value  = std::string{},
-                                  .tags   = {"required"},
+                                  .value  = std::string{"/dev/stdout"},
 };
-
 void app_merge() {
     auto writer = ivio::fasta::writer{{.output = *cliOutput}};
     size_t i{0};
-    for (auto inputFile : *cliInput) {
+    for (auto inputFile : *cliMerge) {
         ++i;
-        fmt::print("processed file {} of {} files\n", i, cliInput->size());
+        fmt::print("processed file {} of {} files\n", i, cliMerge->size());
         auto reader = ivio::fasta::reader{{.input = inputFile}};
         for (auto record : reader) {
             writer.write(record);
