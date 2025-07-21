@@ -7,7 +7,6 @@
 #include <ivio/ivio.h>
 #include <ivsigma/ivsigma.h>
 #include <libsais64.h>
-#include <fmindex-collection/occtable/all.h>
 #include <fmindex-collection/fmindex/FMIndex.h>
 #include <fmindex-collection/fmindex/merge.h>
 
@@ -81,12 +80,7 @@ void app_dna5() {
     fmt::print("reading string T from fasta file...\n");
     auto seqs = loadFastaFile(*cliInput);
 
-    #if FMC_USE_SDSL
-    using OccTable = fmindex_collection::occtable::Sdsl_wt_bldc</*.Sigma=*/256>;
-    #else
-    using OccTable = fmindex_collection::occtable::EprV7</*.Sigma=*/256>;
-    #endif
-    using Index    = fmindex_collection::FMIndex<OccTable>;
+    using Index    = fmc::FMIndex</*.sigma=*/256>;
 
     auto fullIndex = Index{};
 
@@ -112,7 +106,7 @@ void app_dna5() {
 
         fmt::print("merging... ({} + {})\n", fullIndex.size(), partIndex.size());
         if (fullIndex.size() > 0) {
-            fullIndex = fmindex_collection::merge(fullIndex, partIndex);
+            fullIndex = fmc::fmindex::merge(fullIndex, partIndex);
         } else {
             fullIndex = std::move(partIndex);
         }
@@ -120,7 +114,7 @@ void app_dna5() {
     fmt::print("writing to {}\n", *cliOutput);
     auto ofs = std::ofstream{*cliOutput};
     for (size_t i{0}; i < fullIndex.size(); ++i) {
-        auto r = fullIndex.occ.symbol(i);
+        auto r = fullIndex.bwt.symbol(i);
         auto c = ivs::d_dna5::rank_to_char(r);
         ofs << c;
     }
@@ -146,12 +140,7 @@ void app_ascii() {
     fmt::print("reading string T from text file...\n");
     auto seqs = loadTextFile(*cliInput);
 
-    #if FMC_USE_SDSL
-    using OccTable = fmindex_collection::occtable::Sdsl_wt_bldc</*.Sigma=*/256>;
-    #else
-    using OccTable = fmindex_collection::occtable::EprV7</*.Sigma=*/256>;
-    #endif
-    using Index    = fmindex_collection::FMIndex<OccTable>;
+    using Index    = fmc::FMIndex</*.Sigma=*/256>;
 
     auto fullIndex = Index{};
 
@@ -177,7 +166,7 @@ void app_ascii() {
 
         fmt::print("merging... ({} + {})\n", fullIndex.size(), partIndex.size());
         if (fullIndex.size() > 0) {
-            fullIndex = fmindex_collection::merge(fullIndex, partIndex);
+            fullIndex = fmc::fmindex::merge(fullIndex, partIndex);
         } else {
             fullIndex = std::move(partIndex);
         }
@@ -185,7 +174,7 @@ void app_ascii() {
     fmt::print("writing to {}\n", *cliOutput);
     auto ofs = std::ofstream{*cliOutput};
     for (size_t i{0}; i < fullIndex.size(); ++i) {
-        auto r = fullIndex.occ.symbol(i);
+        auto r = fullIndex.bwt.symbol(i);
         ofs.write((char*)&r, 1);
     }
     ofs.close();
