@@ -99,10 +99,11 @@ void app_filter() {
                 }
             }
             if (cliRandomize) {
-                for (auto& c : r.seq) {
+                for (auto& _c : r.seq) {
+                    auto c = static_cast<uint8_t>(_c);
                     if (!bitmap[c]) {
                         auto i = rand() % cliRandomize->size();
-                        c = cliRandomize->at(i);
+                        _c = cliRandomize->at(i);
                     }
                 }
             }
