@@ -11,69 +11,87 @@
 
 namespace {
 void app();
-auto cli = clice::Argument{ .args   = "read_simulator",
-                            .desc   = "simulates reads of a certain length",
-                            .cb     = app,
+auto cli = clice::Argument {
+    .args   = "read_simulator",
+    .desc   = "simulates reads of a certain length",
+    .cb     = app,
 };
 
-auto cliInput = clice::Argument{ .parent = &cli,
-                                 .args   = {"-i", "--input"},
-                                 .desc   = "path to a fasta file",
-                                 .value  = std::filesystem::path{},
+auto cliInput = clice::Argument {
+    .parent = &cli,
+    .args   = {"-i", "--input"},
+    .desc   = "path to a fasta file",
+    .value  = std::filesystem::path{},
 };
 
-auto cliOutput = clice::Argument{ .parent = &cli,
-                                  .args   = {"-o", "--output"},
-                                  .desc   = "path to the output fasta file",
-                                  .value  = std::filesystem::path{},
-                                  .tags   = {"required"},
+auto cliOutput = clice::Argument {
+    .parent = &cli,
+    .args   = {"-o", "--output"},
+    .desc   = "path to the output fasta file",
+    .value  = std::filesystem::path{},
+    .tags   = {"required"},
 };
 
-auto cliFastaLineLength = clice::Argument{ .parent = &cli,
-                                           .args   = {"--fasta_line_length"},
-                                           .desc   = "How long should each fasta line be (0: infinite)",
-                                           .value  = size_t{80},
+auto cliFastaLineLength = clice::Argument {
+    .parent = &cli,
+    .args   = {"--fasta_line_length"},
+    .desc   = "How long should each fasta line be (0: infinite)",
+    .value  = size_t{80},
 };
 
-auto cliReadLength = clice::Argument{ .parent = &cli,
-                                      .args   = {"-l", "--read_length"},
-                                      .desc   = "length of the simulated reads",
-                                      .value  = size_t{150},
+auto cliReadLength = clice::Argument {
+    .parent = &cli,
+    .args   = {"-l", "--read_length"},
+    .desc   = "length of the simulated reads",
+    .value  = size_t{150},
 };
 
-auto cliNumberOfReads = clice::Argument{ .parent = &cli,
-                                         .args   = {"-n", "--number_of_reads"},
-                                         .desc   = "number of reads to simulate",
-                                         .value  = size_t{1000},
+auto cliNumberOfReads = clice::Argument {
+    .parent = &cli,
+    .args   = {"-n", "--number_of_reads"},
+    .desc   = "number of reads to simulate",
+    .value  = size_t{1000},
 };
-auto cliErrorSubstitutions = clice::Argument{ .parent = &cli,
-                                              .args   = {"--substitution_errors"},
-                                              .desc   = "number of substitution errors per read",
-                                              .value  = size_t{0},
+auto cliErrorSubstitutions = clice::Argument {
+    .parent = &cli,
+    .args   = {"--substitution_errors"},
+    .desc   = "number of substitution errors per read",
+    .value  = size_t{0},
 };
-auto cliErrorInsertions    = clice::Argument{ .parent = &cli,
-                                              .args   = {"--insertion_errors"},
-                                              .desc   = "number of insert errors per read",
-                                              .value  = size_t{0},
+auto cliErrorInsertions = clice::Argument {
+    .parent = &cli,
+    .args   = {"--insertion_errors"},
+    .desc   = "number of insert errors per read",
+    .value  = size_t{0},
 };
-auto cliErrorDeletions     = clice::Argument{ .parent = &cli,
-                                              .args   = {"--deletion_errors"},
-                                              .desc   = "number of deletion errors per read",
-                                              .value  = size_t{0},
+auto cliErrorDeletions = clice::Argument {
+    .parent = &cli,
+    .args   = {"--deletion_errors"},
+    .desc   = "number of deletion errors per read",
+    .value  = size_t{0},
 };
-auto cliErrorRandom        = clice::Argument{ .parent = &cli,
-                                              .args   = {"-e", "--errors"},
-                                              .desc   = "number of errors (randomly chosen S, I or D)",
-                                              .value  = size_t{0},
+auto cliErrorRandom = clice::Argument {
+    .parent = &cli,
+    .args   = {"-e", "--errors"},
+    .desc   = "number of errors (randomly chosen S, I or D)",
+    .value  = size_t{0},
 };
 
-auto cliSeed               = clice::Argument{ .parent = &cli,
-                                              .args   = {"--seed"},
-                                              .desc   = "seed to initialize the random generator",
-                                              .value  = (unsigned int){0},
+auto cliSeed = clice::Argument {
+    .parent = &cli,
+    .args   = {"--seed"},
+    .desc   = "seed to initialize the random generator",
+    .value  = (unsigned int){0},
 };
 
-
+enum class Direction { Both, Forward, ReverseCompl };
+auto cliDirection = clice::Argument {
+    .parent  = &cli,
+    .args    = {"-d", "--direction"},
+    .desc    = "read direction, possible values: both: both direction, fwd: forward strand, rev_compl: reverse complement strand",
+    .value   = Direction::Both,
+    .mapping = {{{"both", Direction::Both}, {"fwd", Direction::Forward}, {"rev_compl", Direction::ReverseCompl}}},
+};
 
 char randomPick() {
     switch(rand()% 4) {
@@ -159,6 +177,7 @@ struct Transcript {
 struct ReadGenerator {
     std::vector<std::string> const& sequences;
     size_t readLength;
+    size_t seed{};
     size_t totalLength = [&]() {
         size_t l{};
         for (auto s : sequences) {
@@ -166,10 +185,11 @@ struct ReadGenerator {
         }
         return l;
     }();
-    std::mt19937_64 generator;
+    std::mt19937_64 generator{seed};
     std::uniform_int_distribution<size_t> uniform_pos{0, totalLength-1};
+    std::uniform_int_distribution<size_t> uniform_dir{0, 1};
 
-    auto generate(size_t len) -> std::tuple<size_t, size_t, std::string_view> {
+    auto generate(size_t len, Direction dir) -> std::tuple<size_t, size_t, std::string> {
         while (true) {
             // Simulating a single read
             auto pos = uniform_pos(generator);
@@ -181,7 +201,13 @@ struct ReadGenerator {
                     break;
                 }
                 if (pos < seq.size()) {
-                    return {seqId, pos, seq.substr(pos, len)};
+                    auto seq_str = std::string(seq.substr(pos, len));
+                    if (dir == Direction::ReverseCompl) {
+                        seq_str = ivs::reverse_complement_char<ivs::iupac>(seq_str);
+                    } else if (dir == Direction::Both && uniform_dir(generator) == 1) {
+                        seq_str = ivs::reverse_complement_char<ivs::iupac>(seq_str);
+                    }
+                    return {seqId, pos, seq_str};
                 }
 
                 seqId += 1;
@@ -236,8 +262,11 @@ void app() {
         auto sequences = loadFasta(*cliInput);
         fmt::print("loaded fasta file - start simulating\n");
 
-        auto readGenerator = ReadGenerator { .sequences  = sequences,
-                                             .readLength = *cliReadLength };
+        auto readGenerator = ReadGenerator {
+            .sequences  = sequences,
+            .readLength = *cliReadLength,
+            .seed       = *cliSeed,
+        };
 
 
         auto writer = ivio::fasta::writer {{ .output = *cliOutput,
@@ -255,7 +284,7 @@ void app() {
                 }
             }
             auto transcript = Transcript{*cliReadLength, error_sub, error_ins, error_del};
-            auto [seqId, pos, read] = readGenerator.generate(transcript.lengthOfRef());
+            auto [seqId, pos, read] = readGenerator.generate(transcript.lengthOfRef(), *cliDirection);
 
             auto faultyRead = readGenerator.applyTranscript(read, transcript.transcript);
             writer.write({

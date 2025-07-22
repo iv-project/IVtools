@@ -69,6 +69,12 @@ auto cliRandomize = clice::Argument {
     .desc   = "a list of letters, if they not appear, replace with one of them randomly",
     .value  = std::string{},
 };
+auto cliTruncate = clice::Argument {
+    .parent = &cliFilter,
+    .args   = {"-t", "--truncate"},
+    .desc   = "truncate after given numbers of nucleotides",
+    .value  = std::numeric_limits<size_t>::max(),
+};
 void app_filter() {
     auto writer = ivio::fasta::writer{{.output = *cliOutput}};
     size_t i{0};
@@ -79,6 +85,8 @@ void app_filter() {
     if (cliRandomize && cliRandomize->size() == 0) {
         throw std::runtime_error{"-r, --random can not be an empty string"};
     }
+
+    size_t count{};
     for (auto inputFile : *cliFilter) {
         ++i;
         fmt::print(stderr, "processed file {} of {} files\n", i, cliFilter->size());
@@ -98,7 +106,12 @@ void app_filter() {
                     }
                 }
             }
+            if (count + r.seq.size() > *cliTruncate) {
+                r.seq = r.seq.substr(0, *cliTruncate - count);
+            }
             writer.write(r);
+            count += r.seq.size();
+            if (count == *cliTruncate) break;
         }
     }
 }
