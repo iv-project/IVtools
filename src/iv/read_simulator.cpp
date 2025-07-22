@@ -177,6 +177,7 @@ struct Transcript {
 struct ReadGenerator {
     std::vector<std::string> const& sequences;
     size_t readLength;
+    size_t seed{};
     size_t totalLength = [&]() {
         size_t l{};
         for (auto s : sequences) {
@@ -184,7 +185,7 @@ struct ReadGenerator {
         }
         return l;
     }();
-    std::mt19937_64 generator;
+    std::mt19937_64 generator{seed};
     std::uniform_int_distribution<size_t> uniform_pos{0, totalLength-1};
     std::uniform_int_distribution<size_t> uniform_dir{0, 1};
 
@@ -261,8 +262,11 @@ void app() {
         auto sequences = loadFasta(*cliInput);
         fmt::print("loaded fasta file - start simulating\n");
 
-        auto readGenerator = ReadGenerator { .sequences  = sequences,
-                                             .readLength = *cliReadLength };
+        auto readGenerator = ReadGenerator {
+            .sequences  = sequences,
+            .readLength = *cliReadLength,
+            .seed       = *cliSeed,
+        };
 
 
         auto writer = ivio::fasta::writer {{ .output = *cliOutput,
