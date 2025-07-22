@@ -84,7 +84,14 @@ auto cliSeed = clice::Argument {
     .value  = (unsigned int){0},
 };
 
-
+enum class Direction { Both, Forward, ReverseCompl };
+auto cliDirection = clice::Argument {
+    .parent  = &cli,
+    .args    = {"-d", "--direction"},
+    .desc    = "read direction, possible values: both: both direction, fwd: forward strand, rev_compl: reverse complement strand",
+    .value   = Direction::Both,
+    .mapping = {{{"both", Direction::Both}, {"fwd", Direction::Forward}, {"rev_compl", Direction::ReverseCompl}}},
+};
 
 char randomPick() {
     switch(rand()% 4) {
@@ -179,8 +186,9 @@ struct ReadGenerator {
     }();
     std::mt19937_64 generator;
     std::uniform_int_distribution<size_t> uniform_pos{0, totalLength-1};
+    std::uniform_int_distribution<size_t> uniform_dir{0, 1};
 
-    auto generate(size_t len) -> std::tuple<size_t, size_t, std::string_view> {
+    auto generate(size_t len, Direction dir) -> std::tuple<size_t, size_t, std::string> {
         while (true) {
             // Simulating a single read
             auto pos = uniform_pos(generator);
@@ -192,7 +200,13 @@ struct ReadGenerator {
                     break;
                 }
                 if (pos < seq.size()) {
-                    return {seqId, pos, seq.substr(pos, len)};
+                    auto seq_str = std::string(seq.substr(pos, len));
+                    if (dir == Direction::ReverseCompl) {
+                        seq_str = ivs::reverse_complement_char<ivs::iupac>(seq_str);
+                    } else if (dir == Direction::Both && uniform_dir(generator) == 1) {
+                        seq_str = ivs::reverse_complement_char<ivs::iupac>(seq_str);
+                    }
+                    return {seqId, pos, seq_str};
                 }
 
                 seqId += 1;
@@ -266,7 +280,7 @@ void app() {
                 }
             }
             auto transcript = Transcript{*cliReadLength, error_sub, error_ins, error_del};
-            auto [seqId, pos, read] = readGenerator.generate(transcript.lengthOfRef());
+            auto [seqId, pos, read] = readGenerator.generate(transcript.lengthOfRef(), *cliDirection);
 
             auto faultyRead = readGenerator.applyTranscript(read, transcript.transcript);
             writer.write({
