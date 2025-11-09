@@ -175,6 +175,7 @@ void app_ascii() {
     auto ofs = std::ofstream{*cliOutput};
     for (size_t i{0}; i < fullIndex.size(); ++i) {
         auto r = fullIndex.bwt.symbol(i);
+        if (r == 0) r = '$';
         ofs.write((char*)&r, 1);
     }
     ofs.close();

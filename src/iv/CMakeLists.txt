@@ -10,6 +10,7 @@ add_executable(iv
     main.cpp
     read_simulator.cpp
     search_scheme.cpp
+    fmindex.cpp
     bwt.cpp
     fasta.cpp
 )
